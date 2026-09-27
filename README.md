@@ -6,8 +6,6 @@
 
 Your customer edits texts and images directly on their live website. You keep a plain, static Next.js site in Git. biberblog is only a thin editing layer on top: every change becomes a commit, every commit a new deployment.
 
-<!-- TODO: add a short GIF here: click a field → edit → "Publish" → live -->
-
 **0 databases · 1 commit per publish · ~60 s until live · 100 % static Next.js**
 
 ---
