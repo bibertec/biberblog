@@ -1,0 +1,17 @@
+const {{fieldName}}ItemSchema = z.object({
+  id: z.string(),
+{{#each itemFields}}
+  {{fieldName}}: {{{zodSchemaFor this}}},
+{{/each}}
+});
+
+export type {{pascalCase fieldName}}Item = z.infer<typeof {{fieldName}}ItemSchema>;
+
+export function create{{pascalCase fieldName}}Item(): {{pascalCase fieldName}}Item {
+  return {
+    id: crypto.randomUUID(),
+{{#each itemFields}}
+    {{fieldName}}: {{{defaultValueFor contentType}}},
+{{/each}}
+  };
+}

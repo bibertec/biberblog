@@ -1,0 +1,36 @@
+const {{fieldName}}ItemFields: ItemFieldDef[] = [
+{{#each itemFields}}
+  {{{itemFieldDef this @root.moduleName ../fieldName}}},
+{{/each}}
+];
+
+function render{{pascalCase fieldName}}Item(item: {{pascalCase fieldName}}Item) {
+  return (
+    <div className="flex flex-col gap-2">
+{{#each itemFields}}
+      {{{collectionItemJsx this @root.moduleName ../fieldName}}}
+{{/each}}
+    </div>
+  );
+}
+
+{{#if (hasItemImages this)}}
+export function {{pascalCase fieldName}}Field({ fieldId, value, images, className }: { fieldId: string; value: {{pascalCase fieldName}}Item[]; images: ResolvedImages; className?: string }) {
+{{else}}
+export function {{pascalCase fieldName}}Field({ fieldId, value, className }: { fieldId: string; value: {{pascalCase fieldName}}Item[]; className?: string }) {
+{{/if}}
+  return (
+    <EditableCollection
+      className={className}
+      fieldId={fieldId}
+      value={value}
+      itemFields={ {{fieldName}}ItemFields }
+      titleField="{{titleField}}"
+      renderItem={render{{pascalCase fieldName}}Item}
+      createItem={create{{pascalCase fieldName}}Item}
+{{#if (hasItemImages this)}}
+      images={images}
+{{/if}}
+    />
+  );
+}

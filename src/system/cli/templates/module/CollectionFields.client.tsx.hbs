@@ -1,0 +1,9 @@
+'use client';
+{{{collectionFileImports fields}}}
+{{#each fields}}
+{{#if (eq contentType "EditableCollection")}}
+
+{{> collectionFieldWrapper}}
+
+{{/if}}
+{{/each}}

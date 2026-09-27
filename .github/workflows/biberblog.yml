@@ -1,0 +1,43 @@
+name: biberblog
+
+on:
+  push:
+    branches: [main]
+    # Publishing from the editor only commits content JSON and images – no need to re-check the code.
+    paths-ignore:
+      - 'src/project/content/*.json'
+      - 'public/images/**'
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generated files up to date
+        run: npm run generate -- --check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test

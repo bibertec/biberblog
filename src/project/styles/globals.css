@@ -1,0 +1,304 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   Design Tokens
+   ========================================================================== */
+
+:root {
+  /* ------------------------------------------------------------------------
+     Colors
+     ------------------------------------------------------------------------ */
+
+  --site-color-background: #f5f8ff;
+  --site-color-foreground: #10203f;
+  --site-color-accent: #70c4b0;
+
+  --site-color-muted: #475467;
+  --site-color-border: color-mix(in oklab, var(--site-color-foreground) 15%, transparent);
+  --site-color-focus: var(--site-color-foreground);
+
+  /* ------------------------------------------------------------------------
+     Typography
+     ------------------------------------------------------------------------ */
+
+  --type-size-sm: 0.875rem;
+  --type-size-base: clamp(1rem, 0.964rem + 0.179vw, 1.125rem);
+  --type-size-lg: clamp(1.125rem, 1.089rem + 0.179vw, 1.25rem);
+  --type-size-xl: clamp(1.25rem, 1.179rem + 0.357vw, 1.5rem);
+  --type-size-2xl: clamp(1.375rem, 1.268rem + 0.536vw, 1.75rem);
+
+  --type-size-3xl: clamp(1.625rem, 1.446rem + 0.893vw, 2.25rem);
+  --type-size-4xl: clamp(2rem, 1.786rem + 1.071vw, 2.75rem);
+  --type-size-5xl: clamp(2.5rem, 2.214rem + 1.429vw, 3.5rem);
+
+  --type-leading-tight: 1.1;
+  --type-leading-snug: 1.25;
+  --type-leading-normal: 1.5;
+  --type-leading-body: 1.6;
+
+  /* ------------------------------------------------------------------------
+     Mesh Background
+     ------------------------------------------------------------------------ */
+
+  --mesh-color-primary: color-mix(in oklab, var(--site-color-accent) 28%, transparent);
+  --mesh-color-secondary: rgb(149 139 214 / 22%);
+  --mesh-color-accent: rgb(240 190 120 / 16%);
+
+  --mesh-position-primary: 8% 10%;
+  --mesh-position-secondary: 92% 18%;
+  --mesh-position-accent: 52% 94%;
+
+  --mesh-size-primary: 52%;
+  --mesh-size-secondary: 44%;
+  --mesh-size-accent: 34%;
+}
+
+/* ==========================================================================
+   Tailwind Theme
+   ========================================================================== */
+
+@theme inline {
+  /* Colors */
+
+  --color-background: var(--site-color-background);
+  --color-foreground: var(--site-color-foreground);
+  --color-accent: var(--site-color-accent);
+  --color-muted: var(--site-color-muted);
+  --color-border: var(--site-color-border);
+
+  /* Fonts */
+
+  --font-primary: var(--font-primary-family);
+  --font-secondary: var(--font-secondary-family, var(--font-primary-family));
+
+  /* Type Scale */
+
+  --text-sm: var(--type-size-sm);
+  --text-base: var(--type-size-base);
+  --text-lg: var(--type-size-lg);
+  --text-xl: var(--type-size-xl);
+  --text-2xl: var(--type-size-2xl);
+  --text-3xl: var(--type-size-3xl);
+  --text-4xl: var(--type-size-4xl);
+  --text-5xl: var(--type-size-5xl);
+
+  /* Line Heights (override Tailwind defaults for text-* utilities) */
+
+  --text-sm--line-height: var(--type-leading-normal);
+  --text-base--line-height: var(--type-leading-body);
+  --text-lg--line-height: var(--type-leading-normal);
+  --text-xl--line-height: var(--type-leading-normal);
+  --text-2xl--line-height: var(--type-leading-snug);
+  --text-3xl--line-height: var(--type-leading-snug);
+  --text-4xl--line-height: var(--type-leading-tight);
+  --text-5xl--line-height: var(--type-leading-tight);
+
+  /* Leading (align leading-* utilities with project tokens) */
+
+  --leading-tight: var(--type-leading-tight);
+  --leading-snug: var(--type-leading-snug);
+  --leading-normal: var(--type-leading-normal);
+  --leading-body: var(--type-leading-body);
+}
+
+/* ==========================================================================
+   Document
+   ========================================================================== */
+
+@layer base {
+  html {
+    min-height: 100%;
+    text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    min-height: 100svh;
+    isolation: isolate;
+    color: var(--site-color-foreground);
+    font-family: var(--font-primary-family);
+    font-size: var(--type-size-base);
+    line-height: var(--type-leading-body);
+    /* Language-aware hyphenation based on <html lang>; overflow-wrap breaks
+       overlong strings (e.g. URLs) that cannot be hyphenated. */
+    hyphens: auto;
+    overflow-wrap: break-word;
+    background-color: var(--site-color-background);
+    display: flex;
+    flex-direction: column;
+  }
+
+  body > main {
+    flex-grow: 1;
+  }
+
+  /* ==========================================================================
+     Mesh Background
+     ========================================================================== */
+
+  body::before {
+    position: fixed;
+    z-index: -1;
+    inset: 0;
+    content: '';
+    pointer-events: none;
+    background-image:
+      radial-gradient(
+        circle at var(--mesh-position-primary),
+        var(--mesh-color-primary) 0%,
+        transparent var(--mesh-size-primary)
+      ),
+      radial-gradient(
+        circle at var(--mesh-position-secondary),
+        var(--mesh-color-secondary) 0%,
+        transparent var(--mesh-size-secondary)
+      ),
+      radial-gradient(
+        circle at var(--mesh-position-accent),
+        var(--mesh-color-accent) 0%,
+        transparent var(--mesh-size-accent)
+      );
+
+    background-repeat: no-repeat;
+  }
+
+  /* ==========================================================================
+     Typography
+     ========================================================================== */
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-secondary-family, var(--font-primary-family));
+    font-weight: inherit;
+    line-height: var(--type-leading-snug);
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--type-size-5xl);
+    line-height: var(--type-leading-tight);
+  }
+
+  h2 {
+    font-size: var(--type-size-4xl);
+    line-height: var(--type-leading-tight);
+  }
+
+  h3 {
+    font-size: var(--type-size-3xl);
+  }
+
+  h4 {
+    font-size: var(--type-size-2xl);
+  }
+
+  h5 {
+    font-size: var(--type-size-xl);
+  }
+
+  h6 {
+    font-size: var(--type-size-lg);
+  }
+
+  p,
+  li,
+  dt,
+  dd,
+  blockquote {
+    text-wrap: pretty;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    hyphens: manual;
+  }
+
+  /* ==========================================================================
+     Interactive Elements
+     ========================================================================== */
+
+  a,
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--site-color-focus);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    color: var(--site-color-background);
+    background-color: var(--site-color-foreground);
+  }
+}
+
+@layer components {
+  /* ==========================================================================
+     Rich Text
+     ========================================================================== */
+
+  .richtext {
+    line-height: var(--type-leading-body);
+  }
+
+  .richtext p + p {
+    margin-top: 1em;
+  }
+
+  .richtext ul,
+  .richtext ol {
+    margin-block: 1em;
+    padding-inline-start: 1.5em;
+  }
+
+  .richtext ul {
+    list-style-type: disc;
+  }
+
+  .richtext ol {
+    list-style-type: decimal;
+  }
+
+  .richtext li + li {
+    margin-top: 0.5em;
+  }
+
+  .richtext blockquote {
+    margin-block: 1.25em;
+    padding-inline-start: 1em;
+    color: var(--site-color-muted);
+    border-inline-start: 3px solid var(--site-color-border);
+  }
+
+  .richtext a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-thickness: 0.08em;
+    text-underline-offset: 0.15em;
+  }
+}

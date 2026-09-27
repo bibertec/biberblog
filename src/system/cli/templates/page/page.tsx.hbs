@@ -1,0 +1,14 @@
+import {{pageContentVar pageSlug}} from '@/src/project/content/{{pageSlug}}.json';
+import { pageMetadata } from '@/src/system/content/seo';
+
+export const metadata = pageMetadata({{pageContentVar pageSlug}});
+
+export default function {{pascalCase pageSlug}}Page() {
+  return (
+    <div>
+      <main>
+        {/* PLOP_INJECT_MODULE – optional: new modules are inserted here (otherwise at the end of <main>) */}
+      </main>
+    </div>
+  );
+}

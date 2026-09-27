@@ -1,0 +1,15 @@
+{{{schemaFileImports fields}}}
+
+{{#each fields}}
+{{#if (eq contentType "EditableCollection")}}
+{{> collectionItemSchema}}
+
+{{/if}}
+{{/each}}
+export const {{camelCase moduleName}}Schema = z.object({
+{{#each fields}}
+  {{fieldName}}: {{{zodSchemaFor this}}},
+{{/each}}
+});
+
+export type {{pascalCase moduleName}}Content = z.infer<typeof {{camelCase moduleName}}Schema>;

@@ -1,0 +1,5 @@
+{
+{{#each fields}}
+"{{fieldName}}": { "kind": "editable", "type": "{{contentType}}" }{{#unless @last}},{{/unless}}
+{{/each}}
+}

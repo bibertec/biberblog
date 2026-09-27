@@ -1,0 +1,18 @@
+{{{componentFileImports fields}}}
+import type { {{pascalCase moduleName}}Content } from './schema';
+
+export {{#if (needsAsyncComponent fields)}}async {{/if}}function {{pascalCase moduleName}}({ id, content }: { id: string; content: {{pascalCase moduleName}}Content }) {
+{{#each fields}}
+{{#if (loadStatementFor this)}}
+  {{{loadStatementFor this}}}
+{{/if}}
+{{/each}}
+  return (
+    <section>
+{{#each fields}}
+      {{{componentFieldJsx this ../moduleName}}}
+{{/each}}
+      {/* PLOP_INJECT_FIELD – optional: new fields are inserted here (otherwise at the end) */}
+    </section>
+  );
+}
