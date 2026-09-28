@@ -1,7 +1,7 @@
 {
   "name": "biberblog",
-  "version": "1.0.0",
-  "repository": "https://github.com/bibertec/biberblog-main",
+  "version": "1.1.0",
+  "repository": "https://github.com/bibertec/biberblog",
   "files": [
     "app/api/editor/deployment/route.ts",
     "app/api/editor/image/upload/route.ts",
@@ -57,6 +57,8 @@
     "transform:images": "node src/system/scripts/images/transform-images.mjs",
     "editor:set-password": "node src/system/scripts/auth/set-editor-password.ts",
     "setup": "node src/system/cli/bin/setup.ts",
+    "system:update": "node src/system/cli/bin/update.ts",
+    "system:status": "node src/system/cli/bin/status.ts",
     "generate": "node src/system/cli/bin/generate.ts",
     "plop": "plop --plopfile src/system/cli/plopfile.ts --dest .",
     "module:create": "plop --plopfile src/system/cli/plopfile.ts --dest . module:create",

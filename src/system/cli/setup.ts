@@ -84,6 +84,15 @@ npm run dev
 
 After \`vercel env pull .env.local\`, run \`npm run setup\` again – it restores the local adjustments of \`.env.local\`.
 
+## biberblog updates
+
+\`\`\`bash
+npm run system:status   # version, newer releases, local changes to the editor
+npm run system:update   # merge the latest biberblog release
+\`\`\`
+
+Details: \`src/system/docs/update.md\`
+
 ## Documentation
 
 - biberblog: \`src/system/docs/\` (commands: \`src/system/docs/cli.md\`)

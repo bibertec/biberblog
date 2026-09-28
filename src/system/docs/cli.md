@@ -23,6 +23,16 @@ npm run generate -- --check # only check (CI)
 
 Runs automatically after the page and module commands and before `npm run dev`/`npm run build`. Needed by hand after changing a page `label` in its JSON file.
 
+### Update the system
+
+```bash
+npm run system:status            # version, newer release, local changes to system files
+npm run system:update            # merge the latest biberblog release
+npm run system:update -- 1.2.0   # merge a specific release
+```
+
+Merges a newer biberblog release into the project (3-way merge – local changes to `src/system/` are kept where the release does not touch the same lines) and updates the system entries in `package.json`. Nothing is committed. Details: [Updates](./update.md).
+
 ## Pages
 
 ### Add a page

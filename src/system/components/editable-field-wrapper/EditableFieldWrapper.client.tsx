@@ -87,7 +87,7 @@ export default function EditableFieldWrapper({
         by an invisible button spanning the whole area that opens the dialog.
       */}
       {layout === 'inline' ? (
-        <span className="relative inline-block">
+        <span className="relative inline-block self-start">
           <span inert>{displayContent}</span>
           {editButton}
         </span>

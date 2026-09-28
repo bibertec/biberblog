@@ -91,6 +91,12 @@ A new customer project is created from the GitHub template. `npm run setup` does
 
 The placeholder of new image fields is copied from `src/system/assets/` into `public/images/` once. From then on it belongs to the project – publishing never deletes it and system updates never touch it.
 
-### Updates (planned, not implemented yet)
+### Updates: 3-way merge with Git, no npm package
 
-No npm package – the code stays visible and editable in the project. Planned: an update script that updates the system files with a 3-way merge (old version, project state, new version), adjusts the dependencies from the manifest and runs versioned migrations; a GitHub Action opens the update as a pull request with a Vercel preview.
+No npm package – the code stays visible and editable in the project. `npm run system:update` merges the diff between two releases into the project with `git apply --3way`, moves the system entries in `package.json` to the new manifest and runs versioned migrations (details: [Updates](./update.md)).
+
+- **Releases are Git tags** (`vX.Y.Z`, equal to `version` in the manifest). Projects update from release to release, and every migration belongs to exactly one version.
+- **Git does the merge**, no own merge logic: familiar conflict markers, and new, removed, renamed and binary files are handled. The price: the release tags are fetched into the project repository (`refs/biberblog/*`, never pushed).
+- **Nothing is committed automatically** – an update is reviewed like any other change.
+- **Pull, not push:** every project fetches its updates itself. The upstream repository needs no list of projects and no access to them.
+- **Planned:** a GitHub Action per project that runs the update and opens it as a pull request with a Vercel preview.

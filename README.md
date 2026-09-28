@@ -141,6 +141,8 @@ To change the customer's password later: `npm run editor:set-password` (then upd
 
 `src/system/.env.example` lists all variables. If any of them is missing, the site simply runs without editor mode – no edit button is rendered.
 
+**Edit button missing on the deployed site?** Search the deployment's build log in Vercel for `[biberblog]` – it names the missing variables (`Editor mode is disabled, the following environment variables are missing: …`). Typos in variable names show up there, too.
+
 ### 5. Start developing
 
 ```bash
@@ -158,6 +160,7 @@ The template starts without any content – the home page is empty. Create your 
 - Your work happens in `src/project/*`, `app/*` and `public/*`. `src/system/*` contains the editor itself. `src/generated/*` is derived from your modules and pages – never edit it by hand; it is updated by the CLI commands and `npm run generate`.
 - **Never create or delete pages, modules or editable fields by hand** – use the CLI commands, which also keep registries and content files in sync: [`src/system/docs/cli.md`](./src/system/docs/cli.md).
 - You can freely edit and reformat the generated module code. The CLI changes it via the syntax tree (not text search), so formatting and additional code don't get in the way – see [`src/system/docs/plop.md`](./src/system/docs/plop.md) for the few names it relies on.
+- **Updating biberblog:** every project has its own copy of the editor. `npm run system:update` merges the latest biberblog release into your project (3-way merge – your own changes to `src/system/` are kept where the release doesn't touch the same lines), `npm run system:status` shows your version and local changes. Fixes to the editor belong upstream, not into a single project. Details: [`src/system/docs/update.md`](./src/system/docs/update.md).
 - Run the tests with `npm run test` (or `npm run test:watch`). Test files live next to the code they test (`*.test.ts`). `npm run typecheck` runs the TypeScript check.
 - GitHub Actions (`.github/workflows/biberblog.yml`) checks the generated files and runs lint, type check and tests on every pull request and on pushes to `main` that change code – editor publishes (content JSON and images only) are skipped.
 - Content lives in `src/project/content/*.json`. Don't change its structure by hand, and don't edit it while the customer is editing (their next publish would overwrite your change). The `label` of a page is its name in the editor's link dialog – after changing it, run `npm run generate`.
@@ -190,7 +193,7 @@ All texts the customer sees in the editor (buttons, dialogs, hints, error messag
 
 biberblog 1.0.0 is the first public release. What changes from version to version is listed in [`src/system/CHANGELOG.md`](./src/system/CHANGELOG.md).
 
-- **Updates for existing projects** – every project has its own copy of `src/system/`, so fixes and features don't reach existing projects automatically yet. Planned: an update script that merges new system versions into a project (3-way merge, dependencies, migrations) and a GitHub Action that opens the update as a pull request – no npm package, the code stays visible. The groundwork is done: `src/system/` is identical in every project, and `src/system/manifest.json` describes the system's version and footprint.
+- **Update pull requests** – a GitHub Action in every project that runs `npm run system:update` and opens the result as a pull request with a Vercel preview.
 - **Demo website** – a public example site with a short GIF in this README.
 - **Possible later:** faster detection of failed builds via the GitHub commit status (see [`src/system/docs/decisions.md`](./src/system/docs/decisions.md)).
 
@@ -209,6 +212,7 @@ biberblog 1.0.0 is the first public release. What changes from version to versio
 | [`src/system/docs/seo.md`](./src/system/docs/seo.md)                                                                                                                                           | SEO dialog and page metadata                            |
 | [`src/system/docs/richtext.md`](./src/system/docs/richtext.md) · [`src/system/docs/collection.md`](./src/system/docs/collection.md) · [`src/system/docs/store.md`](./src/system/docs/store.md) | Field types and editor state                            |
 | [`src/system/docs/plop.md`](./src/system/docs/plop.md)                                                                                                                                         | How the scaffolding works internally                    |
+| [`src/system/docs/update.md`](./src/system/docs/update.md)                                                                                                                                     | System updates and releases                             |
 
 ---
 

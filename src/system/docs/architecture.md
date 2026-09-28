@@ -19,7 +19,7 @@ The system reaches outside `src/system/` only where Next.js or the tooling requi
 
 Everything else in the repository root belongs to the project. The system only relies on the default `@/*` path alias in `tsconfig.json`.
 
-`src/system/manifest.json` records this boundary in machine-readable form: the system `version`, the upstream `repository`, the system `files` outside `src/system/`, and the `dependencies`, `devDependencies` and `scripts` the system needs in `package.json` (a test checks that the project still has all of them). Changes per version: `src/system/CHANGELOG.md`. The manifest is the basis of the planned update mechanism (see [Decisions](./decisions.md)).
+`src/system/manifest.json` records this boundary in machine-readable form: the system `version`, the upstream `repository`, the system `files` outside `src/system/`, and the `dependencies`, `devDependencies` and `scripts` the system needs in `package.json` (a test checks that the project still has all of them). Changes per version: `src/system/CHANGELOG.md`. The manifest is the basis of system updates (`npm run system:update`, see [Updates](./update.md)).
 
 ## Content scaffolding
 
@@ -65,6 +65,10 @@ All texts the customer sees in the editor – buttons, dialogs, hints, error mes
 - **Dialog height:** at most `90svh` (the one arbitrary value, deliberately): iOS 26 Safari does not draw fixed content in the area of its floating bottom bar, so a taller dialog was cut off at the bottom (buttons included).
 - **Dialog layout:** only the content (title included) scrolls; the footer always stays visible – error message, `footerStart` on the left (e.g. "Reset to original" from `EditableFieldWrapper`), Cancel/Confirm on the right (wraps onto a second line if a translation is too long). The content fades out over its bottom padding via a CSS mask, so it disappears softly behind the footer instead of being cut off hard; once scrolled to the end, only the empty padding is faded. The mask uses the *top* mask utilities running bottom-up (`mask-t-from-transparent mask-t-to-black mask-t-to-6`: transparent at the bottom edge, opaque 1.5rem above) – the `mask-b-*` utilities measure from the top edge and would need an arbitrary `calc(100% - …)` value. Dialog content should not bring its own scroll container.
 - **Initial focus:** browsers focus the first focusable element of a dialog. `Dialog` keeps that only for text entry (login, text dialog); otherwise the dialog itself takes the focus – e.g. the richtext "Bold" button would get a focus ring on iOS and look selected.
+
+## Updates
+
+Every project has its own copy of the system. `npm run system:update` merges a newer release into it (3-way merge with Git, `package.json` entries from the manifest, versioned migrations); `npm run system:status` shows the version and local changes to system files – details: [Updates](./update.md).
 
 ## Dependencies
 
