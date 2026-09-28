@@ -99,4 +99,3 @@ No npm package – the code stays visible and editable in the project. `npm run 
 - **Git does the merge**, no own merge logic: familiar conflict markers, and new, removed, renamed and binary files are handled. The price: the release tags are fetched into the project repository (`refs/biberblog/*`, never pushed).
 - **Nothing is committed automatically** – an update is reviewed like any other change.
 - **Pull, not push:** every project fetches its updates itself. The upstream repository needs no list of projects and no access to them.
-- **Planned:** a GitHub Action per project that runs the update and opens it as a pull request with a Vercel preview.

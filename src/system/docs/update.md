@@ -80,7 +80,3 @@ node ../biberblog/src/system/cli/bin/update.ts --repository https://github.com/b
 ```
 
 `--repository` is needed because the 1.0.0 manifest still points to the old repository address. The updater only uses Node built-ins, so it runs from any checkout. Afterwards `npm run system:update` is available.
-
-## Planned
-
-A GitHub Action in every project (scheduled and manual) that runs `npm run system:update` and opens the result as a pull request with a Vercel preview.
