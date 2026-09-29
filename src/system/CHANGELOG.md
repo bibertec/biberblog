@@ -2,6 +2,10 @@
 
 Changes to the biberblog system (`src/system/` and the system files listed in `manifest.json`). The version is `version` in `src/system/manifest.json`.
 
+## 1.1.1 – 2026-09-29
+
+- Fix: `EditableImage` and `CollectionImage` always render in the format from `imageFieldRegistry` (`maxWidth / maxHeight`). Before, the browser switched to the file's own aspect ratio once it had loaded, so changing a field's format (e.g. 4:3 → 16:9) had no effect on images published under the old rules. They are now cropped by CSS (`object-fit: cover`, centered) until a new image or crop is published for the field.
+
 ## 1.1.0 – 2026-09-28
 
 - System updates: `npm run system:update` merges a newer release into the project (3-way merge with Git, `package.json` entries from the manifest, versioned migrations), `npm run system:status` shows the version, newer releases and local changes to system files. Details: `src/system/docs/update.md`.

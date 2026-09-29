@@ -26,6 +26,11 @@ type EditableImageDisplayProps = ImageLoadingProps & {
 };
 
 export function EditableImageDisplay({ className, image, rules, alt, loading = 'lazy', preload = false }: EditableImageDisplayProps) {
+  // The rendered format always follows `imageFieldRegistry`, not the file: an image published under
+  // older rules (or the placeholder) is cropped by `objectFit: 'cover'`. `width`/`height` alone are
+  // not enough – with `height: auto` (Tailwind preflight) the browser switches to the file's natural
+  // ratio once it has loaded. No `width` here: the image keeps its size (`maxWidth`, shrunk to the
+  // container) and a width from `className` still applies.
   return (
     <Image
       src={image.src}
@@ -35,7 +40,7 @@ export function EditableImageDisplay({ className, image, rules, alt, loading = '
       preload={preload}
       loading={preload ? undefined : loading}
       className={className}
-      style={{ objectFit: 'cover' }}
+      style={{ aspectRatio: `${rules.maxWidth} / ${rules.maxHeight}`, objectFit: 'cover' }}
     />
   );
 }
