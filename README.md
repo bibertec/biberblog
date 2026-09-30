@@ -195,9 +195,6 @@ All texts the customer sees in the editor (buttons, dialogs, hints, error messag
 
 biberblog 1.0.0 is the first public release. What changes from version to version is listed in [`src/system/CHANGELOG.md`](./src/system/CHANGELOG.md).
 
-- **Demo website** – a public example site with a short GIF in this README.
-- **Possible later:** faster detection of failed builds via the GitHub commit status (see [`src/system/docs/decisions.md`](./src/system/docs/decisions.md)).
-
 ---
 
 ## Documentation
