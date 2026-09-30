@@ -8,6 +8,8 @@ Your customer edits texts and images directly on their live website. You keep a 
 
 **0 databases · 1 commit per publish · ~60 s until live · 100 % static Next.js**
 
+[Official biberblog page](https://biberblog.vercel.app)
+
 ---
 
 ## Why biberblog?

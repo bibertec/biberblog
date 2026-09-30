@@ -18,6 +18,7 @@ export default function EditableRichtextEditor({
   className,
   value,
   fieldId,
+  bulletIcon,
 }: EditableRichtextProps) {
   const pathname = usePathname();
   const key = draftKey(pathname, fieldId);
@@ -53,7 +54,7 @@ export default function EditableRichtextEditor({
       isDirty={draftValue !== undefined}
       confirmLabel={translations.common.apply}
       displayContent={
-        <EditableRichtextDisplay className={className} value={displayValue} fieldId={fieldId} />
+        <EditableRichtextDisplay className={className} value={displayValue} fieldId={fieldId} bulletIcon={bulletIcon} />
       }
       modalContent={
         <RichtextFieldInput key={editorInstanceKey} value={draftDoc} onChange={setDraftDoc} />

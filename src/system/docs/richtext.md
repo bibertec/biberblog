@@ -51,13 +51,39 @@ The dropdown and the link validation deliberately do not use `pageRegistry.ts` b
 - Generated from the page JSON files (see [Plop templates](./plop.md), "Generated registries"). The `label` comes from the page's `label` field – `page:add` asks for it (default from the slug: `about-us` → "About us"). To rename a page in the dropdown, change `label` in the JSON and run `npm run generate`.
 - `pageRegistry.ts` is generated from the same files, so the two lists always contain the same pages.
 
+## Styling
+
+`RichtextRenderer` always renders a wrapper with the `richtext` class – for `EditableRichtext` as well as for richtext item fields in collections. The styles (paragraph spacing, list markers and indentation, links) are in `src/project/styles/globals.css` (`.richtext`, layer `components`), so adapt them there per project. Tailwind utilities passed via `className` are in the `utilities` layer and override them, e.g. `className="[&_ul]:my-2"`.
+
+## Bullet icon
+
+By default, bullet lists use the markers from `.richtext ul` in `globals.css`. The optional `bulletIcon` prop replaces them with an icon – part of the module's markup, not of the content, so the customer cannot change it:
+
+```tsx
+import { CircleCheckBig } from 'lucide-react';
+
+<EditableRichtext
+  fieldId={`${id}.description`}
+  value={content.description}
+  bulletIcon={<CircleCheckBig className="size-[1em] text-accent" />}
+/>
+```
+
+- Pass an element (`<CircleCheckBig />`), not the component (`CircleCheckBig`): modules are Server Components, and only elements – not functions – can be passed to the client component `EditableRichtext`.
+- Size, color and spacing come from the icon's own classes. The icon sits next to the text (flexbox), so it never overlaps it, whatever its size. The gap is `gap-2` (0.5rem); a margin on the icon adds to it, e.g. `className="size-8 me-4"`.
+- The icon is centered on the item's first line. An icon taller than a line makes the item taller; the text then starts at the icon's top edge.
+- The list starts flush with the text column (no indent like lists with markers). To indent it, use e.g. `className="[&_ul]:ps-6"` on the field.
+- Only bullet lists (`ul`) are affected; numbered lists keep their numbers. The `ul` keeps its list semantics (`role="list"`), the icon is `aria-hidden`.
+- The icon is shown in the live view and in the editor preview; the editing dialog itself keeps the normal list markers.
+- `RichtextRenderer` accepts the same prop – for richtext item fields in a collection's `render<Field>Item` callback (see [Collection](./collection.md)).
+
 ## Files
 
 - `src/system/content/richtextSchema.ts` – Zod schema (`richtextDocSchema`) + derived types.
 - `src/generated/pageLinks.ts` – page list for the link dropdown and link validation (generated); `src/system/content/pageLinks.ts` – `isKnownPagePath`, `PagePathname`.
 - `src/system/components/editable-fields/richtext/richtextExtensions.ts` – Tiptap extension set incl. the custom `link` mark.
-- `src/system/components/editable-fields/richtext/RichtextRenderer.tsx` – document → React elements (read-only, no `dangerouslySetInnerHTML`).
-- `src/system/components/editable-fields/richtext/EditableRichtextDisplay.tsx` – wrapper around the renderer with the `.richtext` CSS class (styles already in `globals.css`).
+- `src/system/components/editable-fields/richtext/RichtextRenderer.tsx` – document → React elements (read-only, no `dangerouslySetInnerHTML`) in a wrapper with the `.richtext` CSS class (styles in `globals.css`), optional `bulletIcon`.
+- `src/system/components/editable-fields/richtext/EditableRichtextDisplay.tsx` – display of the field (live view and editor preview), passes `className` and `bulletIcon` to the renderer.
 - `src/system/components/editable-fields/richtext/EditableRichtext.client.tsx` – gate component (display vs. lazy-loaded editor), analogous to `EditableText.client.tsx`.
 - `src/system/components/editable-fields/richtext/EditableRichtext.editor.client.tsx` – editing dialog: toolbar (bold/list/link), Tiptap `EditorContent`, revert – uses the same store mechanism as `EditableText` (see [Store](./store.md)).
 

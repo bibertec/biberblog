@@ -55,7 +55,7 @@ An item field of type `EditableImage` works like the top-level image field (fixe
 
 ## Rendering (live view) – `renderItem` callback
 
-For the layout of the items in the live view (outside the editor dialog) there is deliberately no generic system rendering, but a `render<Field>Item` callback generated during scaffolding (freely adjustable by the developer, just like the rest of the generated module files). For richtext item fields this callback uses `RichtextRenderer` directly (not `EditableRichtext`/`EditableRichtextDisplay` – those are tied to their own store draft addressing, which individual collection items do not have).
+For the layout of the items in the live view (outside the editor dialog) there is deliberately no generic system rendering, but a `render<Field>Item` callback generated during scaffolding (freely adjustable by the developer, just like the rest of the generated module files). For richtext item fields this callback uses `RichtextRenderer` directly (not `EditableRichtext`/`EditableRichtextDisplay` – those are tied to their own store draft addressing, which individual collection items do not have); it renders with the same `.richtext` styles as `EditableRichtext`.
 
 `EditableCollectionDisplay.tsx` (generic, no Tiptap dependency, therefore safe in the main bundle) only calls `renderItem(item)` per item, wrapped in a `Fragment` (no extra wrapper element per item – full layout control stays with the `renderItem` callback).
 

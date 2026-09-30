@@ -41,9 +41,27 @@ function renderInlineContent(nodes: RichtextTextNode[] | undefined, keyPrefix: s
   ));
 }
 
-function renderBlock(node: RichtextBlockNode, key: string): ReactNode {
+function renderBlock(node: RichtextBlockNode, key: string, bulletIcon?: ReactNode): ReactNode {
   if (node.type === 'paragraph') {
     return <p key={key}>{renderInlineContent(node.content, key)}</p>;
+  }
+
+  if (node.type === 'bulletList' && bulletIcon != null) {
+    // The icon replaces the list marker as a flex item next to the text, so it never overlaps the text, whatever its
+    // size: centered on the first line, a larger icon makes the item taller. Gap: `gap-2` plus the icon's own margin.
+    // `role="list"`: Safari/VoiceOver no longer announce a list with `list-style: none` otherwise.
+    return (
+      <ul key={key} role="list" className="list-none ps-0">
+        {node.content.map((item, itemIndex) => (
+          <li key={`${key}-li${itemIndex}`} className="flex items-start gap-2">
+            <span aria-hidden="true" className="flex min-h-lh shrink-0 items-center">
+              {bulletIcon}
+            </span>
+            <span className="min-w-0">{renderInlineContent(item.content[0].content, `${key}-li${itemIndex}`)}</span>
+          </li>
+        ))}
+      </ul>
+    );
   }
 
   const ListTag = node.type === 'bulletList' ? 'ul' : 'ol';
@@ -62,6 +80,14 @@ function renderBlock(node: RichtextBlockNode, key: string): ReactNode {
   );
 }
 
-export function RichtextRenderer({ doc, className }: { doc: RichtextDoc; className?: string }) {
-  return <div className={className}>{doc.content.map((node, index) => renderBlock(node, `b${index}`))}</div>;
+/**
+ * Always adds the `richtext` class (styles in `src/project/styles/globals.css`), so richtext looks the same in
+ * `EditableRichtext` and in collection items. Utility classes in `className` override these styles.
+ */
+export function RichtextRenderer({ doc, className, bulletIcon }: { doc: RichtextDoc; className?: string; bulletIcon?: ReactNode }) {
+  return (
+    <div className={`richtext ${className ?? ''}`.trim()}>
+      {doc.content.map((node, index) => renderBlock(node, `b${index}`, bulletIcon))}
+    </div>
+  );
 }
