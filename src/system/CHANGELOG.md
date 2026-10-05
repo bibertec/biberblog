@@ -2,6 +2,10 @@
 
 Changes to the biberblog system (`src/system/` and the system files listed in `manifest.json`). The version is `version` in `src/system/manifest.json`.
 
+## 1.3.0 – 2026-10-05
+
+- `npm run version:sync` copies `version` from `src/system/manifest.json` into `package.json` and the root version fields of `package-lock.json` (other fields stay untouched, unchanged files are not rewritten). It runs automatically before `npm run dev` and `npm run build` (`predev`/`prebuild`), so the project's `package.json` always shows the biberblog version it runs on. Details: `src/system/docs/cli.md`.
+
 ## 1.2.1 – 2026-10-05
 
 - Fix: `EditableText` links to an anchor on the current page (`link={{ href: '#section' }}`) scroll on every click. They are now rendered as a native `<a>` instead of `next/link`, which only scrolls when the hash changes – with the hash already in the URL, a second click did nothing. Use `#section` (not `/#section`) for anchors on the current page.

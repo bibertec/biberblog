@@ -23,6 +23,14 @@ npm run generate -- --check # only check (CI)
 
 Runs automatically after the page and module commands and before `npm run dev`/`npm run build`. Needed by hand after changing a page `label` in its JSON file.
 
+### Sync the version
+
+```bash
+npm run version:sync
+```
+
+Copies `version` from `src/system/manifest.json` into `package.json` and the root version fields of `package-lock.json`. Runs automatically before `npm run dev`/`npm run build` – needed by hand only to update `package.json` right away, e.g. after `npm run system:update` or when preparing a release.
+
 ### Update the system
 
 ```bash

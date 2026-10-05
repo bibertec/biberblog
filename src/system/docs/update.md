@@ -61,7 +61,7 @@ export default function migrate(): void {
 ## Releasing (upstream repository only)
 
 1. Make and test the changes (`src/system/`, the files in the manifest, the manifest's `dependencies`/`devDependencies`/`scripts`). Add a migration if projects need changes outside the system files.
-2. Raise `version` in `src/system/manifest.json` (patch: fix, minor: feature, major: change that needs manual steps) and add the entry in `src/system/CHANGELOG.md`.
+2. Raise `version` in `src/system/manifest.json` (patch: fix, minor: feature, major: change that needs manual steps), run `npm run version:sync` (copies it into `package.json` and `package-lock.json`) and add the entry in `src/system/CHANGELOG.md`.
 3. Commit, tag and push – the tag is the release:
 
    ```bash

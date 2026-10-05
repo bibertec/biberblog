@@ -1,6 +1,6 @@
 {
   "name": "biberblog",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "repository": "https://github.com/bibertec/biberblog",
   "files": [
     "app/api/editor/deployment/route.ts",
@@ -45,9 +45,9 @@
     "vitest": "^5.0.1"
   },
   "scripts": {
-    "predev": "npm run generate",
+    "predev": "npm run version:sync && npm run generate",
     "dev": "next dev",
-    "prebuild": "npm run generate",
+    "prebuild": "npm run version:sync && npm run generate",
     "build": "next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
@@ -60,6 +60,7 @@
     "system:update": "node src/system/cli/bin/update.ts",
     "system:status": "node src/system/cli/bin/status.ts",
     "generate": "node src/system/cli/bin/generate.ts",
+    "version:sync": "node src/system/cli/bin/version.ts",
     "plop": "plop --plopfile src/system/cli/plopfile.ts --dest .",
     "module:create": "plop --plopfile src/system/cli/plopfile.ts --dest . module:create",
     "module:add-editable-field": "plop --plopfile src/system/cli/plopfile.ts --dest . module:add-editable-field",
