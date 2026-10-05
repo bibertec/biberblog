@@ -12,6 +12,10 @@ const EditableTextEditor = dynamic(() => import('./EditableText.editor.client'),
 export type EditableTextProps = EditorFieldProps & {
   value: string;
   link?: {
+    /**
+     * A page path (`/about`, rendered with `next/link`), an anchor on the current page (`#section`,
+     * a native link that scrolls on every click) or, with `isExternal`, an external URL (new tab).
+     */
     href: string;
     isExternal?: boolean;
   };

@@ -2,6 +2,10 @@
 
 Changes to the biberblog system (`src/system/` and the system files listed in `manifest.json`). The version is `version` in `src/system/manifest.json`.
 
+## 1.2.1 – 2026-10-05
+
+- Fix: `EditableText` links to an anchor on the current page (`link={{ href: '#section' }}`) scroll on every click. They are now rendered as a native `<a>` instead of `next/link`, which only scrolls when the hash changes – with the hash already in the URL, a second click did nothing. Use `#section` (not `/#section`) for anchors on the current page.
+
 ## 1.2.0 – 2026-09-30
 
 - `EditableRichtext` has an optional `bulletIcon` prop: an icon element (e.g. `<CircleCheckBig className="size-[1em]" />` from Lucide) that replaces the markers of bullet lists. The icon sits next to the text and never overlaps it; its size and the gap to the text (margin, e.g. `me-4`) come from the icon's own classes. Numbered lists keep their numbers. `RichtextRenderer` accepts the same prop, e.g. for richtext item fields in a collection's `render<Field>Item` callback. Details: `src/system/docs/richtext.md`.
