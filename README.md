@@ -1,6 +1,6 @@
 <!-- biberblog:template-readme -->
 
-# 🦫 biberblog
+# 🦫 biber[blog]
 
 **On-page content editing for static Next.js websites – without a database.**
 
@@ -131,7 +131,7 @@ The setup asks for the customer's editor password and a GitHub token – a [fine
 
 - writes `.env.local`: generates the session secret, stores the password as an Argon2id hash (with every `$` escaped as `\$` – Next.js would otherwise expand it) and derives `VERCEL_GIT_REPO_OWNER`/`VERCEL_GIT_REPO_SLUG` from the Git remote,
 - prints `EDITOR_SESSION_SECRET`, `EDITOR_PASSWORD_HASH` and `GITHUB_TOKEN` – add them in the Vercel dashboard for **Production** and **Development** and redeploy,
-- on the first run, replaces this README with a short project README and removes the root `LICENSE` (biberblog's license stays in `src/system/LICENSE`).
+- on the first run, replaces this README with a short project README and removes the root `LICENSE` (biberblog's license stays in `src/system/LICENSE`) and `CONTRIBUTING.md`.
 
 The setup never overwrites existing values and can be run any time. `vercel env pull` overwrites `.env.local` – so run `npm run setup` again after every pull (e.g. after adding variables in the Vercel dashboard). An expired `VERCEL_OIDC_TOKEN` does not need a new pull, it is renewed automatically (see step 2):
 
@@ -213,6 +213,10 @@ biberblog 1.0.0 is the first public release. What changes from version to versio
 | [`src/system/docs/update.md`](./src/system/docs/update.md)                                                                                                                                     | System updates and releases                             |
 
 ---
+
+## Contributing
+
+Bug reports, fixes and ideas are welcome – please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
 
 ## License
 

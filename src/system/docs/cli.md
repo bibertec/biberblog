@@ -12,7 +12,7 @@ All commands are run from the project root. They generate and remove pages, modu
 npm run setup
 ```
 
-Prepares a project created from the biberblog template: writes `.env.local` (session secret, password hash, repository variables – existing values are never overwritten), prints the variables to add in Vercel and, on the first run, replaces the biberblog README and removes the root `LICENSE`. Run it again after every `vercel env pull .env.local`. Details: README, "Quickstart".
+Prepares a project created from the biberblog template: writes `.env.local` (session secret, password hash, repository variables – existing values are never overwritten), prints the variables to add in Vercel and, on the first run, replaces the biberblog README and removes the root `LICENSE` and `CONTRIBUTING.md`. Run it again after every `vercel env pull .env.local`. Details: README, "Quickstart".
 
 ### Regenerate `src/generated/`
 

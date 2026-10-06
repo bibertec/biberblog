@@ -13,12 +13,13 @@ import manifest from '../manifest.json' with { type: 'json' };
  * - `.env.local`: generates what is missing (session secret, password hash, repository variables),
  *   escapes `$` in the password hash and never overwrites existing values.
  * - Prints the variables that still have to be added in Vercel.
- * - First run only: replaces the biberblog README with a project README and removes the root
- *   LICENSE of biberblog (it stays in `src/system/LICENSE`).
+ * - First run only: replaces the biberblog README with a project README and removes biberblog's
+ *   root LICENSE (it stays in `src/system/LICENSE`) and CONTRIBUTING.md.
  */
 
 const ENV_FILE = '.env.local';
 const TEMPLATE_README_MARKER = '<!-- biberblog:template-readme -->';
+const TEMPLATE_CONTRIBUTING_MARKER = '<!-- biberblog:template-contributing -->';
 const SYSTEM_LICENSE = 'src/system/LICENSE';
 
 // --- .env helpers (pure) ----------------------------------------------------------------------
@@ -204,6 +205,11 @@ async function initializeProject(repo: { owner: string; slug: string } | undefin
   if (isBiberblogLicense && (await confirm(`Remove the biberblog LICENSE from the project root? (It stays in ${SYSTEM_LICENSE}.)`, true))) {
     fs.unlinkSync('LICENSE');
     console.log('LICENSE removed.');
+  }
+  const contributing = fs.existsSync('CONTRIBUTING.md') ? fs.readFileSync('CONTRIBUTING.md', 'utf-8') : '';
+  if (contributing.startsWith(TEMPLATE_CONTRIBUTING_MARKER) && (await confirm('Remove the biberblog CONTRIBUTING.md from the project root?', true))) {
+    fs.unlinkSync('CONTRIBUTING.md');
+    console.log('CONTRIBUTING.md removed.');
   }
 }
 

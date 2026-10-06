@@ -2,6 +2,10 @@
 
 Changes to the biberblog system (`src/system/` and the system files listed in `manifest.json`). The version is `version` in `src/system/manifest.json`.
 
+## 1.3.1 – 2026-10-06
+
+- On the first run, `npm run setup` also offers to remove biberblog's `CONTRIBUTING.md` from the root of a new project (recognized by its first line, like the template README) – the guide is only meant for the biberblog repository itself.
+
 ## 1.3.0 – 2026-10-05
 
 - `npm run version:sync` copies `version` from `src/system/manifest.json` into `package.json` and the root version fields of `package-lock.json` (other fields stay untouched, unchanged files are not rewritten). It runs automatically before `npm run dev` and `npm run build` (`predev`/`prebuild`), so the project's `package.json` always shows the biberblog version it runs on. Details: `src/system/docs/cli.md`.
