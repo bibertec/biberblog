@@ -2,6 +2,11 @@
 
 Changes to the biberblog system (`src/system/` and the system files listed in `manifest.json`). The version is `version` in `src/system/manifest.json`.
 
+## 1.3.2 – 2026-10-07
+
+- Docs: `decisions.md` and `architecture.md` no longer refer to rules in `AGENTS.md`, which the public file does not contain. They now state directly that changing a documented decision or adding a dependency needs an issue in the biberblog repository first.
+- Fix (template only): the English default for `navbar.moreOptions` – the label of the menu button in the editor navbar, shown as tooltip and read by screen readers – was German ("Weitere Optionen"). New projects now get "More options". `src/project/config/translations.ts` belongs to the project, so `npm run system:update` does not change it: in existing projects with English editor texts, change it by hand.
+
 ## 1.3.1 – 2026-10-06
 
 - On the first run, `npm run setup` also offers to remove biberblog's `CONTRIBUTING.md` from the root of a new project (recognized by its first line, like the template README) – the guide is only meant for the biberblog repository itself.
