@@ -33,7 +33,7 @@ export const translations = {
     exitEditor: 'Exit',
     logout: 'Logout',
     seo: 'SEO',
-    moreOptions: 'Weitere Optionen',
+    moreOptions: 'More options',
     pages: 'Pages',
     publishFailedTitle: 'Publishing failed',
     publishFailed: 'Publishing failed.',
