@@ -98,7 +98,7 @@ Development:
 | `vitest` | Unit and integration tests (`npm run test`); test files live next to the code they test (`*.test.ts`), generator tests in `src/system/cli/`. |
 | `@redux-devtools/extension` | Types for Zustand's `devtools` middleware (store inspection during development only). |
 
-No state, fetching or styling library beyond these; new dependencies need a concrete reason (see `AGENTS.md`).
+No state, fetching or styling library beyond these; new dependencies need a concrete reason and are agreed on in an issue in the biberblog repository first.
 
 ## Deliberate decisions
 

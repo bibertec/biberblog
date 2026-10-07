@@ -1,6 +1,6 @@
 # Deliberate decisions & accepted risks
 
-This document lists things that are deliberately **not** implemented or deliberately kept simple. They are not bugs or forgotten tasks. Changing one of these decisions is a product or architecture decision (see the decision boundaries in `AGENTS.md`).
+This document lists things that are deliberately **not** implemented or deliberately kept simple. They are not bugs or forgotten tasks. Changing one of these decisions is a product or architecture decision: open an issue in the biberblog repository (`bibertec/biberblog`) first, before writing code.
 
 Base assumption for all points: each website has **one** customer acting as editor, who updates content rarely. The developer manages GitHub and Vercel.
 
