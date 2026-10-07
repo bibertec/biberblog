@@ -2,6 +2,10 @@
 
 Changes to the biberblog system (`src/system/` and the system files listed in `manifest.json`). The version is `version` in `src/system/manifest.json`.
 
+## Unreleased
+
+- SEO: new projects now ship `app/robots.ts` and `app/sitemap.ts`, which serve `/robots.txt` and `/sitemap.xml` from the pages in `src/generated/pageLinks.ts` and an absolute origin from `src/project/config/siteUrl.ts`. All three files belong to the project, so `npm run system:update` does not add them to existing projects – copy the three files by hand to opt in. Details: `src/system/docs/seo.md`.
+
 ## 1.3.2 – 2026-10-07
 
 - Docs: `decisions.md` and `architecture.md` no longer refer to rules in `AGENTS.md`, which the public file does not contain. They now state directly that changing a documented decision or adding a dependency needs an issue in the biberblog repository first.
