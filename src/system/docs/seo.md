@@ -27,3 +27,10 @@ The SEO draft of a page has the field id `SEO_FIELD_ID` (`'seo'`). `publishConte
 - `src/system/lib/seo/actions.ts` (`'use server'`) – `loadSeoPages`.
 - `src/system/components/editor-navbar/SeoDialog.client.tsx` – the dialog.
 - `src/system/cli/templates/page/page.tsx.hbs`, `content.json.hbs` – metadata export and default values of new pages.
+
+## robots.txt and sitemap.xml
+
+- `app/robots.ts` serves `/robots.txt` (allow all, plus the sitemap URL) and `app/sitemap.ts` serves `/sitemap.xml` (one entry per `pageLinks` entry, with an absolute URL). Both routes are static.
+- The absolute origin comes from `src/project/config/siteUrl.ts`: `VERCEL_PROJECT_PRODUCTION_URL` (prefixed with `https://`) on Vercel, otherwise `http://localhost:3000`.
+- A page added with `npm run page:add` appears in the sitemap without further changes, because the sitemap reads `src/generated/pageLinks.ts`, which `npm run generate` rebuilds.
+- `app/robots.ts`, `app/sitemap.ts` and `src/project/config/siteUrl.ts` belong to the project, not the system: `npm run system:update` does not add them to an existing project, so opt in by copying the three files by hand.
