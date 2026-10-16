@@ -7,20 +7,31 @@ import {
 
 export type ResolvedImage = {
   src: string;
+  /** Hash-versioned URL of the mobile file – only if the value has one (`value.mobile`). */
+  mobileSrc?: string;
 };
 
 /** Published `src` (`/images/<name>.webp`) → hash-versioned URL, for the images of a collection. */
 export type ResolvedImages = Record<string, string>;
 
-export async function loadContentImage(value: ImageValue): Promise<ResolvedImage> {
-  const src = repositoryImagePathSchema.parse(value.src);
+async function resolveImageSrc(value: string): Promise<string> {
+  const src = repositoryImagePathSchema.parse(value);
   const filename = src.slice('/images/'.length, -'.webp'.length);
   const {
     default: image,
   }: {
     default: StaticImageData;
   } = await import(`../../../../public/images/${filename}.webp`);
-  return { src: image.src };
+  return image.src;
+}
+
+export async function loadContentImage(value: ImageValue): Promise<ResolvedImage> {
+  const [src, mobileSrc] = await Promise.all([
+    resolveImageSrc(value.src),
+    value.mobile ? resolveImageSrc(value.mobile.src) : undefined,
+  ]);
+
+  return mobileSrc ? { src, mobileSrc } : { src };
 }
 
 /**

@@ -92,6 +92,11 @@ export type EditorTranslations = {
     /** Button of an image field inside a collection item. */
     change: string;
     chooseFile: string;
+    /** Toggle buttons (icon only: aria-label/tooltip) of a field with a mobile variant. */
+    desktopVariant: string;
+    mobileVariant: string;
+    /** Smartphone view with an image or crop of its own: back to the one derived from the desktop image. */
+    useDesktopImage: string;
     allowedFormats: (maxMegabytes: number) => string;
     loading: string;
     loadFailed: string;

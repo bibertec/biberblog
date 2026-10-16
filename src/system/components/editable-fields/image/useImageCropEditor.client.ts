@@ -6,23 +6,87 @@ import {
   ALLOWED_UPLOAD_MIME_TYPES,
   MAX_UPLOAD_BYTES,
   type AllowedUploadMimeType,
-  isTempImageDraft,
   type CropData,
+  type FieldImageDraft,
   type ImageDraft,
   type ImageValue,
-  type TempImageDraft,
+  type MobileImageMode,
+  type TempImage,
 } from '@/src/system/content/imageSchema';
-import type { ImageFieldRules } from '@/src/project/content/imageFieldRegistry';
-import { canPan, computeCrop, slidersFromCrop } from '@/src/system/lib/images/cropMath';
+import type { ImageFieldRules, ImageVariantRules } from '@/src/system/content/imageFieldRules';
+import { canPan, computeCrop, deriveCrop, slidersFromCrop, type CropSliders } from '@/src/system/lib/images/cropMath';
 import { requestTempImagePreview } from '@/src/system/lib/images/actions';
+import type { ResolvedImage } from '@/src/system/lib/images/loadContentImage';
 import { translations } from '@/src/project/config/translations';
-import type { ImageCropperProps } from './ImageCropper.client';
+import type { ImageCropperProps, ImageVariantName } from './ImageCropper.client';
+import {
+  buildImageDraft,
+  initialSources,
+  uploadOncePerSource,
+  type CropSource,
+  type UploadableSource,
+  type VariantSnapshot,
+} from './imageDraft';
 
 type SourceStatus = ImageCropperProps['sourceStatus'];
 type Rotation = CropData['rotation'];
+type Dimensions = { width: number; height: number };
 
-function isUntouchedCrop(zoom: number, panX: number, panY: number, rotation: number): boolean {
-  return zoom === 1 && panX === 0 && panY === 0 && rotation === 0;
+type VariantState = {
+  /** `null` for the mobile variant while it follows the desktop image (`auto`). */
+  source: CropSource | null;
+  /** What the cropper loads – for a temp blob only once its preview URL has been issued. */
+  sourceUrl: string | undefined;
+  status: SourceStatus;
+  error: string | null;
+  dimensions: Dimensions | null;
+  sliders: CropSliders;
+  /** Stored crop of a reopened temp draft, turned into slider positions once the source has loaded. */
+  pendingCrop: CropData | null;
+};
+
+const IDENTITY_SLIDERS: CropSliders = { zoom: 1, panX: 0, panY: 0, rotation: 0 };
+const EMPTY_VARIANT: VariantState = {
+  source: null,
+  sourceUrl: undefined,
+  status: 'idle',
+  error: null,
+  dimensions: null,
+  sliders: IDENTITY_SLIDERS,
+  pendingCrop: null,
+};
+const PLACEHOLDER_CROP: CropData = { x: 0, y: 0, width: 1, height: 1, rotation: 0 };
+
+function isIdentity(sliders: CropSliders): boolean {
+  return sliders.zoom === 1 && sliders.panX === 0 && sliders.panY === 0 && sliders.rotation === 0;
+}
+
+function variantFor(source: CropSource | null): VariantState {
+  if (!source) return EMPTY_VARIANT;
+  if (source.kind === 'temp') return { ...EMPTY_VARIANT, source, status: 'loading', pendingCrop: source.crop };
+
+  return { ...EMPTY_VARIANT, source, sourceUrl: source.url, status: 'decoding' };
+}
+
+function cropOf(variant: VariantState, aspectRatio: number): CropData | undefined {
+  if (!variant.dimensions) return undefined;
+
+  return computeCrop({
+    sourceWidth: variant.dimensions.width,
+    sourceHeight: variant.dimensions.height,
+    ...variant.sliders,
+    aspectRatio,
+  });
+}
+
+function snapshotOf(variant: VariantState, aspectRatio: number): VariantSnapshot {
+  return {
+    source: variant.source,
+    status: variant.status,
+    error: variant.error,
+    crop: cropOf(variant, aspectRatio),
+    untouched: isIdentity(variant.sliders),
+  };
 }
 
 function resolveUploadMeta(file: File): { extension: string; mimeType: AllowedUploadMimeType } {
@@ -45,218 +109,243 @@ async function fetchExistingAsFile(url: string): Promise<File> {
   return new File([blob], 'image', { type: blob.type });
 }
 
-type UseImageCropEditorOptions = {
+async function uploadSource(source: UploadableSource): Promise<TempImage> {
+  const file = source.kind === 'file' ? source.file : await fetchExistingAsFile(source.url);
+  const meta = resolveUploadMeta(file);
+  const pathname = `temp/${crypto.randomUUID()}.${meta.extension}`;
+  await uploadPresigned(pathname, file, {
+    access: 'private',
+    contentType: meta.mimeType,
+    handleUploadUrl: '/api/editor/image/upload',
+  });
+
+  return { pathname, mimeType: meta.mimeType, size: file.size };
+}
+
+type SingleVariantOptions = {
   /** The value the dialog starts from (published image or existing draft). */
   current: ImageDraft;
   /** Displayable URL of `current` if it is a published image. */
-  currentImageUrl: string;
+  currentImage: ResolvedImage;
+  rules: ImageVariantRules & { mobile?: undefined };
+};
+
+type FieldOptions = {
+  current: FieldImageDraft;
+  currentImage: ResolvedImage;
   rules: ImageFieldRules;
+  /** The published field value – the reference for what has to be (re)generated. */
+  published: ImageValue;
+};
+
+export type ImageCropEditor<TDraft> = {
+  cropperKey: number;
+  cropperProps: ImageCropperProps;
+  open: () => void;
+  close: () => void;
+  /** Back to the published image after "reset to original" (the dialog stays open). */
+  reset: (published: ImageValue) => void;
+  save: () => Promise<TDraft>;
 };
 
 /**
  * State and logic of the image dialog (file selection, crop sliders, alt text, upload), shared by
  * the top-level image field and image fields inside collection items. The caller decides where the
  * result of `save()` goes (store draft or collection item).
+ *
+ * With `rules.mobile`, the dialog edits two variants: the desktop image and a mobile image that
+ * follows it (`auto`, derived crop) until the customer crops it differently or chooses another
+ * image (`custom`). Without, it works on a single image exactly as before.
  */
-export function useImageCropEditor({ current, currentImageUrl, rules }: UseImageCropEditorOptions) {
-  const currentTemp = isTempImageDraft(current) ? current : undefined;
-  const currentPublished = isTempImageDraft(current) ? undefined : current;
-  const [file, setFile] = useState<File | null>(null);
-  const [sourceUrl, setSourceUrl] = useState<string | undefined>(undefined);
-  const [sourceStatus, setSourceStatus] = useState<SourceStatus>('idle');
-  const [sourceError, setSourceError] = useState<string | null>(null);
-  const [sourceDimensions, setSourceDimensions] = useState<{ width: number; height: number } | null>(null);
+export function useImageCropEditor(options: SingleVariantOptions): ImageCropEditor<ImageDraft>;
+export function useImageCropEditor(options: FieldOptions): ImageCropEditor<FieldImageDraft>;
+export function useImageCropEditor({
+  current,
+  currentImage,
+  rules,
+  published,
+}: Omit<FieldOptions, 'published'> & { published?: ImageValue }): ImageCropEditor<FieldImageDraft> {
+  const mobileRules = rules.mobile;
+  const [desktop, setDesktop] = useState<VariantState>(EMPTY_VARIANT);
+  const [mobile, setMobile] = useState<VariantState>(EMPTY_VARIANT);
+  const [mobileMode, setMobileMode] = useState<MobileImageMode>('auto');
+  const [activeVariant, setActiveVariant] = useState<ImageVariantName>('desktop');
   const [altText, setAltText] = useState(current.alt);
-  const [zoom, setZoom] = useState(1);
-  const [panX, setPanX] = useState(0);
-  const [panY, setPanY] = useState(0);
-  const [rotation, setRotation] = useState<Rotation>(0);
   // New key per opening: remounts the cropper so it loads the source image again, even if the
   // URL is the same as last time (otherwise a reopened dialog would hang in the loading state).
   const [cropperKey, setCropperKey] = useState(0);
-  const objectUrlRef = useRef<string | null>(null);
-  const slidersInitializedRef = useRef(false);
+  // Object URLs of chosen files – both variants may show the same file, so they are only released
+  // when the dialog closes.
+  const objectUrlsRef = useRef<string[]>([]);
 
   useEffect(
     () => () => {
-      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     },
     [],
   );
 
-  function releaseObjectUrl() {
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
+  function releaseObjectUrls() {
+    objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    objectUrlsRef.current = [];
   }
 
-  function resetCrop() {
-    setZoom(1);
-    setPanX(0);
-    setPanY(0);
-    setRotation(0);
+  function setVariant(name: ImageVariantName, update: (variant: VariantState) => VariantState) {
+    (name === 'desktop' ? setDesktop : setMobile)(update);
+  }
+
+  function aspectRatioOf(name: ImageVariantName): number {
+    return name === 'mobile' && mobileRules ? mobileRules.aspectRatio : rules.aspectRatio;
+  }
+
+  /** Puts the sources of `value` into the dialog; temp blobs get their preview URLs (once per blob). */
+  function load(value: FieldImageDraft) {
+    const sources = initialSources(value, currentImage);
+    const variants = { desktop: variantFor(sources.desktop), mobile: variantFor(mobileRules ? sources.mobile : null) };
+    setDesktop(variants.desktop);
+    setMobile(variants.mobile);
+    setMobileMode(mobileRules ? sources.mobileMode : 'auto');
+    const previews = new Map<string, ReturnType<typeof requestTempImagePreview>>();
+    for (const name of ['desktop', 'mobile'] as const) {
+      const { source } = variants[name];
+      if (source?.kind !== 'temp') continue;
+      const { pathname } = source.temp;
+      if (!previews.has(pathname)) previews.set(pathname, requestTempImagePreview(pathname));
+      void previews.get(pathname)!.then((result) => {
+        setVariant(name, (variant) => {
+          // Meanwhile replaced (other file, "use desktop image", dialog reopened)?
+          if (variant.source !== source) return variant;
+
+          return result.success
+            ? { ...variant, sourceUrl: result.data.previewUrl, status: 'decoding' }
+            : { ...variant, status: 'error', error: result.error };
+        });
+      });
+    }
   }
 
   function open() {
+    releaseObjectUrls();
     setCropperKey((key) => key + 1);
-    setFile(null);
+    setActiveVariant('desktop');
     setAltText(current.alt);
-    setSourceDimensions(null);
-    setSourceError(null);
-    slidersInitializedRef.current = false;
-    if (currentTemp) {
-      setSourceStatus('loading');
-      void requestTempImagePreview(currentTemp.temp.pathname).then((result) => {
-        if (result.success) {
-          setSourceUrl(result.data.previewUrl);
-          setSourceStatus('decoding');
-        } else {
-          setSourceStatus('error');
-          setSourceError(result.error);
-        }
-      });
-    } else {
-      resetCrop();
-      setSourceUrl(currentImageUrl);
-      setSourceStatus('decoding');
-    }
+    load(current);
   }
 
   function close() {
-    releaseObjectUrl();
-    setFile(null);
+    releaseObjectUrls();
   }
 
-  /**
-   * Back to the published image after "reset to original". The dialog stays open, so the published
-   * image is loaded into the cropper again (new key: its URL may be the one already shown).
-   */
-  function reset(alt: string) {
-    close();
+  function reset(publishedValue: ImageValue) {
+    releaseObjectUrls();
     setCropperKey((key) => key + 1);
-    setAltText(alt);
-    setSourceDimensions(null);
-    setSourceError(null);
-    resetCrop();
-    // The reverted draft's crop must not be applied to the published image.
-    slidersInitializedRef.current = true;
-    setSourceUrl(currentImageUrl);
-    setSourceStatus('decoding');
+    setAltText(publishedValue.alt);
+    load(publishedValue);
+  }
+
+  const isMobileView = mobileRules !== undefined && activeVariant === 'mobile';
+  const followsDesktop = isMobileView && mobileMode === 'auto';
+  const shownName: ImageVariantName = isMobileView && !followsDesktop ? 'mobile' : 'desktop';
+  const shown = shownName === 'mobile' ? mobile : desktop;
+  const shownAspectRatio = aspectRatioOf(isMobileView ? 'mobile' : 'desktop');
+  const desktopCrop = cropOf(desktop, rules.aspectRatio);
+  const shownCrop = followsDesktop
+    ? desktopCrop && deriveCrop(desktopCrop, shownAspectRatio)
+    : cropOf(shown, shownAspectRatio);
+  const shownSliders =
+    followsDesktop && shownCrop && desktop.dimensions
+      ? slidersFromCrop(shownCrop, desktop.dimensions.width, desktop.dimensions.height, shownAspectRatio)
+      : shown.sliders;
+
+  function updateSliders(update: (sliders: CropSliders) => CropSliders) {
+    if (!followsDesktop) {
+      setVariant(shownName, (variant) => ({ ...variant, sliders: update(variant.sliders) }));
+      return;
+    }
+    // The first change of the derived crop makes it the mobile image's own crop of the same image.
+    setMobile({ ...desktop, pendingCrop: null, sliders: update(shownSliders) });
+    setMobileMode('custom');
   }
 
   function handleFileSelected(selected: File) {
+    const target: ImageVariantName = isMobileView ? 'mobile' : 'desktop';
+    if (target === 'mobile') setMobileMode('custom');
     const isAllowedType = ALLOWED_UPLOAD_MIME_TYPES.some((type) => type === selected.type);
     if (!isAllowedType) {
-      setSourceStatus('error');
-      setSourceError(translations.image.invalidType);
+      setVariant(target, () => ({ ...EMPTY_VARIANT, status: 'error', error: translations.image.invalidType }));
       return;
     }
     if (selected.size > MAX_UPLOAD_BYTES) {
-      setSourceStatus('error');
-      setSourceError(translations.image.tooLarge(Math.round(MAX_UPLOAD_BYTES / (1024 * 1024))));
+      setVariant(target, () => ({
+        ...EMPTY_VARIANT,
+        status: 'error',
+        error: translations.image.tooLarge(Math.round(MAX_UPLOAD_BYTES / (1024 * 1024))),
+      }));
       return;
     }
-    releaseObjectUrl();
     const url = URL.createObjectURL(selected);
-    objectUrlRef.current = url;
-    slidersInitializedRef.current = true;
-    setFile(selected);
-    setSourceDimensions(null);
-    resetCrop();
-    setSourceUrl(url);
-    setSourceStatus('decoding');
-    setSourceError(null);
+    objectUrlsRef.current.push(url);
+    setVariant(target, () => variantFor({ kind: 'file', file: selected, url }));
   }
 
-  function handleImageLoaded(width: number, height: number) {
-    setSourceDimensions({ width, height });
-    if (currentTemp && !slidersInitializedRef.current) {
-      const sliders = slidersFromCrop(currentTemp.crop, width, height, rules.aspectRatio);
-      setZoom(sliders.zoom);
-      setPanX(sliders.panX);
-      setPanY(sliders.panY);
-      setRotation(sliders.rotation);
-    }
-    slidersInitializedRef.current = true;
-    setSourceStatus('ready');
+  function handleImageLoaded(name: ImageVariantName, width: number, height: number) {
+    setVariant(name, (variant) => ({
+      ...variant,
+      dimensions: { width, height },
+      sliders: variant.pendingCrop ? slidersFromCrop(variant.pendingCrop, width, height, aspectRatioOf(name)) : variant.sliders,
+      pendingCrop: null,
+      status: 'ready',
+    }));
   }
 
-  function cropFor(dimensions: { width: number; height: number }): CropData {
-    return computeCrop({
-      sourceWidth: dimensions.width,
-      sourceHeight: dimensions.height,
-      rotation,
-      zoom,
-      panX,
-      panY,
-      aspectRatio: rules.aspectRatio,
+  function followDesktopImage() {
+    setMobileMode('auto');
+    setMobile(EMPTY_VARIANT);
+  }
+
+  /** Returns the new value of the field – see `buildImageDraft` for what is uploaded when. */
+  async function save(): Promise<FieldImageDraft> {
+    return buildImageDraft({
+      alt: altText,
+      desktop: snapshotOf(desktop, rules.aspectRatio),
+      mobile: snapshotOf(mobile, aspectRatioOf('mobile')),
+      mobileMode,
+      mobileAspectRatio: mobileRules?.aspectRatio,
+      published,
+      current,
+      upload: uploadOncePerSource(uploadSource),
     });
   }
 
-  /**
-   * Returns the new value. Uploads only if necessary:
-   * - existing temp draft without a new file → reuses the uploaded original with the new crop/alt;
-   * - published image with untouched crop → `{ src, alt }` (only the alt text changes);
-   * - otherwise the new file (or the published WEBP for a new crop) is uploaded as a temp blob.
-   */
-  async function save(): Promise<ImageDraft> {
-    const trimmedAlt = altText.trim();
-    if (!trimmedAlt) {
-      throw new Error(translations.image.altTextRequired);
-    }
-    if (sourceStatus !== 'ready' || !sourceDimensions || !sourceUrl) {
-      throw new Error(translations.image.notReady);
-    }
-    const nextCrop = cropFor(sourceDimensions);
-    if (!file && currentTemp) {
-      return { ...currentTemp, alt: trimmedAlt, crop: nextCrop } satisfies TempImageDraft;
-    }
-    if (!file && currentPublished && isUntouchedCrop(zoom, panX, panY, rotation)) {
-      return { src: currentPublished.src, alt: trimmedAlt } satisfies ImageValue;
-    }
-    const uploadFile = file ?? (await fetchExistingAsFile(sourceUrl));
-    const meta = resolveUploadMeta(uploadFile);
-    const pathname = `temp/${crypto.randomUUID()}.${meta.extension}`;
-    await uploadPresigned(pathname, uploadFile, {
-      access: 'private',
-      contentType: meta.mimeType,
-      handleUploadUrl: '/api/editor/image/upload',
-    });
-
-    return {
-      alt: trimmedAlt,
-      crop: nextCrop,
-      temp: { pathname, mimeType: meta.mimeType, size: uploadFile.size },
-    } satisfies TempImageDraft;
-  }
-
-  const crop: CropData = sourceDimensions
-    ? cropFor(sourceDimensions)
-    : { x: 0, y: 0, width: 1, height: 1, rotation: 0 };
-  const pannable = sourceDimensions
-    ? canPan(crop, sourceDimensions.width, sourceDimensions.height)
-    : { x: false, y: false };
+  const pannable =
+    shownCrop && shown.dimensions ? canPan(shownCrop, shown.dimensions.width, shown.dimensions.height) : { x: false, y: false };
 
   const cropperProps: ImageCropperProps = {
-    aspectRatio: rules.aspectRatio,
-    sourceUrl,
-    sourceStatus,
-    sourceError,
-    crop,
+    aspectRatio: shownAspectRatio,
+    sourceUrl: shown.sourceUrl,
+    sourceStatus: shown.status,
+    sourceError: shown.error,
+    crop: shownCrop ?? PLACEHOLDER_CROP,
     canPanX: pannable.x,
     canPanY: pannable.y,
-    zoom,
-    panX,
-    panY,
+    zoom: shownSliders.zoom,
+    panX: shownSliders.panX,
+    panY: shownSliders.panY,
     alt: altText,
+    variants: mobileRules
+      ? {
+          active: activeVariant,
+          onSelect: setActiveVariant,
+          onUseDesktopImage: isMobileView && mobileMode === 'custom' ? followDesktopImage : undefined,
+        }
+      : undefined,
     onFileSelected: handleFileSelected,
-    onImageLoaded: handleImageLoaded,
-    onZoomChange: setZoom,
-    onPanXChange: setPanX,
-    onPanYChange: setPanY,
-    onRotate: () => setRotation((previous) => ((previous + 90) % 360) as Rotation),
-    onResetCrop: resetCrop,
+    onImageLoaded: (width, height) => handleImageLoaded(shownName, width, height),
+    onZoomChange: (zoom) => updateSliders((sliders) => ({ ...sliders, zoom })),
+    onPanXChange: (panX) => updateSliders((sliders) => ({ ...sliders, panX })),
+    onPanYChange: (panY) => updateSliders((sliders) => ({ ...sliders, panY })),
+    onRotate: () => updateSliders((sliders) => ({ ...sliders, rotation: ((sliders.rotation + 90) % 360) as Rotation })),
+    onResetCrop: () => updateSliders(() => IDENTITY_SLIDERS),
     onAltChange: setAltText,
   };
 

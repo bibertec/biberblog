@@ -13,8 +13,19 @@ vi.mock('server-only', () => ({}));
 // --- Fixtures ---------------------------------------------------------------------------------
 
 // `vi.hoisted`: these values are used inside the (hoisted) `vi.mock` factories below.
-const { PLACEHOLDER, GENERATED_A, GENERATED_B, GENERATED_C, TEMP_ASSET_ID, TEMP_ASSET_ID_2 } = vi.hoisted(() => ({
+const {
+  PLACEHOLDER,
+  GENERATED_A,
+  GENERATED_B,
+  GENERATED_C,
+  HERO_DESKTOP,
+  HERO_MOBILE,
+  TEMP_ASSET_ID,
+  TEMP_ASSET_ID_2,
+} = vi.hoisted(() => ({
   PLACEHOLDER: '/images/placeholder.webp',
+  HERO_DESKTOP: '/images/ffffffff-0000-4000-8000-000000000006.webp',
+  HERO_MOBILE: '/images/ffffffff-0000-4000-8000-000000000006-mobile.webp',
   GENERATED_A: '/images/aaaaaaaa-0000-4000-8000-000000000001.webp',
   GENERATED_B: '/images/bbbbbbbb-0000-4000-8000-000000000002.webp',
   GENERATED_C: '/images/dddddddd-0000-4000-8000-000000000004.webp',
@@ -37,7 +48,20 @@ vi.mock('@/src/generated/pageRegistry', () => {
     pageRegistry: {
       '/': {
         repoPath: 'src/project/content/home.json',
-        content: { label: 'Home', seo: { title: 'Home', description: '' }, modules: { team1: team('Home title', PLACEHOLDER) } },
+        content: {
+          label: 'Home',
+          seo: { title: 'Home', description: '' },
+          modules: {
+            team1: team('Home title', PLACEHOLDER),
+            // An image field with a mobile variant, published with both files.
+            hero1: {
+              type: 'Hero',
+              content: { image: { src: HERO_DESKTOP, alt: 'Hero', mobile: { src: HERO_MOBILE, mode: 'auto' } } },
+            },
+            // The same field before its first publish with a mobile variant.
+            hero2: { type: 'Hero', content: { image: { src: PLACEHOLDER, alt: 'Hero' } } },
+          },
+        },
       },
       '/about': {
         repoPath: 'src/project/content/about.json',
@@ -69,6 +93,11 @@ vi.mock('@/src/generated/moduleRegistry', async () => {
           members: z.array(z.object({ id: z.string(), name: z.string(), photo: imageValueSchema })),
         }),
       },
+      Hero: {
+        schema: z.object({
+          image: imageValueSchema,
+        }),
+      },
     },
   };
 });
@@ -78,6 +107,7 @@ vi.mock('@/src/project/content/imageFieldRegistry', async (importOriginal) => ({
   imageFieldRegistry: {
     'Team.photo': { aspectRatio: 1, maxWidth: 100, maxHeight: 100 },
     'Team.members.photo': { aspectRatio: 2, maxWidth: 100, maxHeight: 50 },
+    'Hero.image': { aspectRatio: 2, maxWidth: 200, maxHeight: 100, mobile: { aspectRatio: 0.5, maxWidth: 50, maxHeight: 100 } },
   },
 }));
 
@@ -391,6 +421,132 @@ describe('publishContent: images', () => {
 
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error).toContain('"Team.title" is not a known image field');
+    expect(commitFiles).not.toHaveBeenCalled();
+  });
+});
+
+describe('publishContent: images with a mobile variant', () => {
+  const HERO_RULES = { aspectRatio: 2, maxWidth: 200, maxHeight: 100 };
+  const HERO_MOBILE_RULES = { aspectRatio: 0.5, maxWidth: 50, maxHeight: 100 };
+  const temp = (assetId = TEMP_ASSET_ID) => ({ pathname: `temp/${assetId}.jpg`, mimeType: 'image/jpeg', size: TEMP_BYTES.length });
+  const desktopCrop = { x: 0, y: 0, width: 200, height: 100, rotation: 0 };
+  const mobileCrop = { x: 75, y: 0, width: 50, height: 100, rotation: 0 };
+  const heroImage = (page = 'src/project/content/home.json', module = 'hero1') =>
+    committedJson(page).modules[module].content.image;
+
+  it('crops one upload into a desktop and a mobile file (read once, deleted once)', async () => {
+    await publishContent({
+      '/::hero1.image': {
+        alt: 'New hero',
+        desktop: { temp: temp(), crop: desktopCrop },
+        mobile: { mode: 'auto', temp: temp(), crop: mobileCrop },
+      },
+    });
+
+    expect(readTempBlobBytes).toHaveBeenCalledTimes(1);
+    expect(processImageCrop).toHaveBeenCalledWith(TEMP_BYTES, desktopCrop, HERO_RULES);
+    expect(processImageCrop).toHaveBeenCalledWith(TEMP_BYTES, mobileCrop, HERO_MOBILE_RULES);
+    expect(heroImage()).toEqual({
+      src: `/images/${TEMP_ASSET_ID}.webp`,
+      alt: 'New hero',
+      mobile: { src: `/images/${TEMP_ASSET_ID}-mobile.webp`, mode: 'auto' },
+    });
+    expect(committedFiles().map((file) => file.repoPath)).toEqual(
+      expect.arrayContaining([`public/images/${TEMP_ASSET_ID}.webp`, `public/images/${TEMP_ASSET_ID}-mobile.webp`]),
+    );
+    expect(deletedPaths()).toEqual(expect.arrayContaining([`public${HERO_DESKTOP}`, `public${HERO_MOBILE}`]));
+    expect(deletedPaths()).toHaveLength(2);
+    expect(deleteTempBlob).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the desktop file when only the mobile image is replaced', async () => {
+    await publishContent({
+      '/::hero1.image': {
+        alt: 'Hero',
+        desktop: { src: HERO_DESKTOP },
+        mobile: { mode: 'custom', temp: temp(TEMP_ASSET_ID_2), crop: mobileCrop },
+      },
+    });
+
+    expect(processImageCrop).toHaveBeenCalledTimes(1);
+    expect(processImageCrop).toHaveBeenCalledWith(TEMP_BYTES, mobileCrop, HERO_MOBILE_RULES);
+    expect(heroImage()).toEqual({
+      src: HERO_DESKTOP,
+      alt: 'Hero',
+      mobile: { src: `/images/${TEMP_ASSET_ID_2}-mobile.webp`, mode: 'custom' },
+    });
+    expect(deletedPaths()).toEqual([`public${HERO_MOBILE}`]);
+  });
+
+  it('keeps a custom mobile file when only the desktop image is replaced', async () => {
+    await publishContent({
+      '/::hero1.image': {
+        alt: 'Hero',
+        desktop: { temp: temp(), crop: desktopCrop },
+        mobile: { mode: 'custom', src: HERO_MOBILE },
+      },
+    });
+
+    expect(processImageCrop).toHaveBeenCalledTimes(1);
+    expect(heroImage()).toEqual({
+      src: `/images/${TEMP_ASSET_ID}.webp`,
+      alt: 'Hero',
+      mobile: { src: HERO_MOBILE, mode: 'custom' },
+    });
+    expect(deletedPaths()).toEqual([`public${HERO_DESKTOP}`]);
+  });
+
+  it('generates the mobile file of a field published without one, keeping the placeholder', async () => {
+    await publishContent({
+      '/::hero2.image': {
+        alt: 'Hero',
+        desktop: { src: PLACEHOLDER },
+        mobile: { mode: 'auto', temp: temp(), crop: mobileCrop },
+      },
+    });
+
+    expect(heroImage('src/project/content/home.json', 'hero2')).toEqual({
+      src: PLACEHOLDER,
+      alt: 'Hero',
+      mobile: { src: `/images/${TEMP_ASSET_ID}-mobile.webp`, mode: 'auto' },
+    });
+    expect(deletedPaths()).toEqual([]);
+  });
+
+  it('applies an alt-text-only draft with both files as is', async () => {
+    const value = { src: HERO_DESKTOP, alt: 'Better alt text', mobile: { src: HERO_MOBILE, mode: 'auto' } };
+
+    await publishContent({ '/::hero1.image': value });
+
+    expect(processImageCrop).not.toHaveBeenCalled();
+    expect(heroImage()).toEqual(value);
+    expect(deletedPaths()).toEqual([]);
+  });
+
+  it('rejects a mobile upload whose size differs from the draft', async () => {
+    const result = await publishContent({
+      '/::hero1.image': {
+        alt: 'Hero',
+        desktop: { src: HERO_DESKTOP },
+        mobile: { mode: 'custom', temp: { ...temp(), size: 999 }, crop: mobileCrop },
+      },
+    });
+
+    expect(result).toEqual({ success: false, error: translations.errors.tempImageMismatch });
+    expect(commitFiles).not.toHaveBeenCalled();
+  });
+
+  it('rejects a draft with a mobile variant for a field without one', async () => {
+    const result = await publishContent({
+      '/::team1.photo': {
+        alt: 'Photo',
+        desktop: { temp: temp(), crop: { x: 0, y: 0, width: 100, height: 100, rotation: 0 } },
+        mobile: { mode: 'auto', temp: temp(), crop: { x: 0, y: 0, width: 100, height: 100, rotation: 0 } },
+      },
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toContain('"Team.photo" has no mobile variant');
     expect(commitFiles).not.toHaveBeenCalled();
   });
 });

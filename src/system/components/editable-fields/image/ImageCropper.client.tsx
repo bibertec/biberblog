@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { MoveHorizontal, MoveVertical, ZoomIn } from 'lucide-react';
+import { Monitor, MoveHorizontal, MoveVertical, Smartphone, ZoomIn } from 'lucide-react';
 import type { CropData } from '@/src/system/content/imageSchema';
 import { ALLOWED_UPLOAD_MIME_TYPES, MAX_UPLOAD_BYTES } from '@/src/system/content/imageSchema';
 import { paintCropPreview } from '@/src/system/lib/images/cropCanvas';
@@ -14,6 +14,9 @@ const BUTTON_CLASS_NAME = 'rounded-xl border px-3 py-1.5 text-sm disabled:opacit
 // input (min at the top – `dir="rtl"` flips it so the min is at the bottom). `touch-none` keeps a
 // vertical drag on the slider from scrolling the dialog content instead.
 const VERTICAL_SLIDER_CLASS_NAME = 'min-h-0 w-full flex-1 touch-none accent-accent [writing-mode:vertical-lr]';
+const VARIANT_BUTTON_CLASS_NAME = 'rounded-xl border p-2 aria-pressed:bg-black aria-pressed:text-white';
+
+export type ImageVariantName = 'desktop' | 'mobile';
 
 export type ImageCropperProps = {
   aspectRatio: number;
@@ -28,6 +31,16 @@ export type ImageCropperProps = {
   panX: number;
   panY: number;
   alt: string;
+  /**
+   * Only for fields with a mobile variant: which variant the controls below edit. Upload, preview
+   * and sliders apply to the active variant; the alt text is shared.
+   */
+  variants?: {
+    active: ImageVariantName;
+    onSelect: (variant: ImageVariantName) => void;
+    /** Set while the mobile variant has an image or crop of its own: back to the derived one. */
+    onUseDesktopImage?: () => void;
+  };
   onFileSelected: (file: File) => void;
   onImageLoaded: (width: number, height: number) => void;
   onZoomChange: (zoom: number) => void;
@@ -50,6 +63,7 @@ export function ImageCropper({
   panX,
   panY,
   alt,
+  variants,
   onFileSelected,
   onImageLoaded,
   onZoomChange,
@@ -80,7 +94,7 @@ export function ImageCropper({
     const image = imageRef.current;
     if (!canvas || !image) return;
     paintCropPreview(canvas, image, crop);
-  }, [crop]);
+  }, [crop, aspectRatio]);
   const previewHeight = Math.round(PREVIEW_WIDTH / aspectRatio);
   const isReady = sourceStatus === 'ready';
   // Preview and controls are rendered while loading, too (disabled), so the dialog keeps its height.
@@ -89,6 +103,29 @@ export function ImageCropper({
 
   return (
     <div className="flex flex-col gap-3">
+      {variants && (
+        <div className="flex justify-center gap-2">
+          {(
+            [
+              ['desktop', Monitor, translations.image.desktopVariant],
+              ['mobile', Smartphone, translations.image.mobileVariant],
+            ] as const
+          ).map(([name, Icon, label]) => (
+            <button
+              key={name}
+              type="button"
+              aria-pressed={variants.active === name}
+              aria-label={label}
+              title={label}
+              onClick={() => variants.onSelect(name)}
+              className={VARIANT_BUTTON_CLASS_NAME}
+            >
+              <Icon size={20} aria-hidden />
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-col gap-1">
         <input
           ref={fileInputRef}
@@ -101,9 +138,16 @@ export function ImageCropper({
             event.target.value = '';
           }}
         />
-        <button type="button" onClick={() => fileInputRef.current?.click()} className={BUTTON_CLASS_NAME}>
-          {translations.image.chooseFile}
-        </button>
+        <div className={variants?.onUseDesktopImage ? 'grid grid-cols-2 gap-2' : 'flex flex-col'}>
+          <button type="button" onClick={() => fileInputRef.current?.click()} className={BUTTON_CLASS_NAME}>
+            {translations.image.chooseFile}
+          </button>
+          {variants?.onUseDesktopImage && (
+            <button type="button" onClick={variants.onUseDesktopImage} className={BUTTON_CLASS_NAME}>
+              {translations.image.useDesktopImage}
+            </button>
+          )}
+        </div>
         <p className="text-xs text-gray-500">
           {translations.image.allowedFormats(Math.round(MAX_UPLOAD_BYTES / (1024 * 1024)))}
         </p>

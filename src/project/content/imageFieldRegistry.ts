@@ -1,8 +1,6 @@
-export type ImageFieldRules = {
-  aspectRatio: number;
-  maxWidth: number;
-  maxHeight: number;
-};
+import type { ImageFieldRules } from '@/src/system/content/imageFieldRules';
+
+export type { ImageFieldRules };
 
 /**
  * `'<Module>.<field>'` for an image field, `'<Module>.<collectionField>.<itemField>'` for an image

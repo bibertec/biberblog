@@ -2,6 +2,11 @@
 
 Changes to the biberblog system (`src/system/` and the system files listed in `manifest.json`). The version is `version` in `src/system/manifest.json`.
 
+## 1.5.0 – 2026-10-16
+
+- Images: an `EditableImage` field can have an optional mobile variant – its own format below Tailwind's `md` breakpoint (768 px) with its own file. In the image dialog, two icon buttons (desktop/smartphone) switch between the variants; by default the mobile image follows the desktop image (the largest centered crop in the mobile format), and the customer can crop it differently or choose another image ("Use desktop image" goes back). On publish, such a field always gets two WEBPs (`<uuid>.webp`, `<uuid>-mobile.webp`), the page renders `<picture>` and phones download only the mobile file. `preload` adds one preload per variant. Opt-in per field: `module:create`/`module:add-editable-field` offer the smartphone variant for top-level image fields; for an existing field, add `mobile: { aspectRatio, maxWidth, maxHeight }` to its entry in `imageFieldRegistry.ts` – module code and content stay unchanged, and until the field is published again, phones get the desktop file in the mobile format. Not yet available for image item fields of collections. Details: `src/system/docs/images.md`, "Mobile variant".
+- `ImageFieldRules` now comes from the system (`src/system/content/imageFieldRules.ts`). The 1.5.0 migration switches `src/project/content/imageFieldRegistry.ts` to it and adds the editor texts `image.desktopVariant`, `image.mobileVariant` and `image.useDesktopImage` (English) to `src/project/config/translations.ts` – translate them if your editor texts are in another language. If a file was rewritten, the migration prints what to change by hand.
+
 ## 1.4.0 – 2026-10-07
 
 - SEO: new projects now ship `app/robots.ts` and `app/sitemap.ts`, which serve `/robots.txt` and `/sitemap.xml` from the pages in `src/generated/pageLinks.ts` and an absolute origin from `src/project/config/siteUrl.ts`. All three files belong to the project, so `npm run system:update` does not add them to existing projects – copy the three files by hand to opt in. Details: `src/system/docs/seo.md`.

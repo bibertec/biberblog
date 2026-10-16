@@ -56,7 +56,7 @@ export function registerModuleCreateGenerator(plop: NodePlopAPI) {
         if (contentType === 'EditableCollection') {
           fields.push({ fieldName, contentType, ...(await promptCollectionItemFields(inquirer)) });
         } else if (contentType === 'EditableImage') {
-          fields.push({ fieldName, contentType, ...(await promptImageDimensions(inquirer)) });
+          fields.push({ fieldName, contentType, ...(await promptImageDimensions(inquirer, { offerMobileVariant: true })) });
         } else {
           fields.push({ fieldName, contentType });
         }

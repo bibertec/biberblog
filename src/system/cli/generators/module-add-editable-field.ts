@@ -47,7 +47,7 @@ export function registerModuleAddEditableFieldGenerator(plop: NodePlopAPI) {
         },
       ]);
       if (contentType === 'EditableImage') {
-        return { moduleName, contentType, fieldName, ...(await promptImageDimensions(inquirer)) };
+        return { moduleName, contentType, fieldName, ...(await promptImageDimensions(inquirer, { offerMobileVariant: true })) };
       }
       if (contentType === 'EditableCollection') {
         return { moduleName, contentType, fieldName, ...(await promptCollectionItemFields(inquirer)) };

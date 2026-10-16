@@ -30,8 +30,14 @@ export function imageRegistryKey(moduleName: string, ...fieldPath: string[]): st
   return [moduleName, ...fieldPath].join('.');
 }
 
-export function imageRegistryEntry(width: number, height: number): string {
-  return `{ aspectRatio: ${width} / ${height}, maxWidth: ${width}, maxHeight: ${height} }`;
+function imageVariantRules(width: number, height: number): string {
+  return `aspectRatio: ${width} / ${height}, maxWidth: ${width}, maxHeight: ${height}`;
+}
+
+export function imageRegistryEntry(width: number, height: number, mobile?: { width: number; height: number }): string {
+  const mobileRules = mobile ? `, mobile: { ${imageVariantRules(mobile.width, mobile.height)} }` : '';
+
+  return `{ ${imageVariantRules(width, height)}${mobileRules} }`;
 }
 
 /** Names of the image item fields of a collection field. */

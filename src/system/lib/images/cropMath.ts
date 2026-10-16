@@ -65,6 +65,26 @@ export function slidersFromCrop(
   return { zoom, panX, panY, rotation: crop.rotation };
 }
 
+/**
+ * The automatic crop of a mobile variant: the largest rectangle in `aspectRatio` inside `crop`,
+ * centered – so the mobile image shows the middle of what the desktop image shows (with the same
+ * aspect ratio exactly the same area). Same coordinates as `crop` (rotated source), same rotation.
+ * Equals what `object-fit: cover` shows of a desktop file in the mobile format.
+ */
+export function deriveCrop(crop: CropData, aspectRatio: number): CropData {
+  const cropRatio = crop.width / crop.height;
+  const width = cropRatio > aspectRatio ? crop.height * aspectRatio : crop.width;
+  const height = cropRatio > aspectRatio ? crop.height : crop.width / aspectRatio;
+
+  return {
+    x: crop.x + (crop.width - width) / 2,
+    y: crop.y + (crop.height - height) / 2,
+    width,
+    height,
+    rotation: crop.rotation,
+  };
+}
+
 /** Less than one source pixel of play is no usable panning (also absorbs floating-point noise). */
 const MIN_PAN_RANGE = 1;
 

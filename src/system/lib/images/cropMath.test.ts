@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { computeCrop, slidersFromCrop, type CropSliders } from './cropMath';
+import { computeCrop, deriveCrop, slidersFromCrop, type CropSliders } from './cropMath';
 import { assertCropAspectRatio } from './process';
 
 // Next.js resolves `server-only` itself; outside of Next it is a no-op.
@@ -202,5 +202,55 @@ describe('slidersFromCrop', () => {
     const sliders = slidersFromCrop({ x: 0, y: 0, width: 0, height: 0, rotation: 0 }, 4000, 3000, 1);
 
     expect(sliders.zoom).toBe(1);
+  });
+});
+
+describe('deriveCrop', () => {
+  // Every crop from `cases`, derived to a portrait and a landscape mobile format – checked in a loop
+  // instead of `it.each`, which would add thousands of near-identical test cases.
+  const derivedCases = cases.flatMap((input) =>
+    [3 / 4, 16 / 9].map((mobileAspectRatio) => ({
+      ...input,
+      mobileAspectRatio,
+      crop: computeCrop(input),
+      derived: deriveCrop(computeCrop(input), mobileAspectRatio),
+    })),
+  );
+
+  it('returns the largest centered crop in the mobile format inside the crop', () => {
+    for (const { label, crop, derived, mobileAspectRatio } of derivedCases) {
+      const message = `${label} → ${mobileAspectRatio.toFixed(2)}`;
+      expect(derived.rotation, message).toBe(crop.rotation);
+      expect(() => assertCropAspectRatio(derived, { aspectRatio: mobileAspectRatio, maxWidth: 1, maxHeight: 1 }), message).not.toThrow();
+      // Inside the crop …
+      expect(derived.x, message).toBeGreaterThanOrEqual(crop.x - 1e-6);
+      expect(derived.y, message).toBeGreaterThanOrEqual(crop.y - 1e-6);
+      expect(derived.x + derived.width, message).toBeLessThanOrEqual(crop.x + crop.width + 1e-6);
+      expect(derived.y + derived.height, message).toBeLessThanOrEqual(crop.y + crop.height + 1e-6);
+      // … centered, and as large as possible: it fills the crop on at least one axis.
+      expect(derived.x + derived.width / 2, message).toBeCloseTo(crop.x + crop.width / 2, 6);
+      expect(derived.y + derived.height / 2, message).toBeCloseTo(crop.y + crop.height / 2, 6);
+      expect(Math.abs(derived.width - crop.width) < 1e-6 || Math.abs(derived.height - crop.height) < 1e-6, message).toBe(true);
+    }
+  });
+
+  it('can be shown and continued with the crop sliders (slidersFromCrop round trip)', () => {
+    for (const { sourceWidth, sourceHeight, derived, mobileAspectRatio } of derivedCases) {
+      const sliders = slidersFromCrop(derived, sourceWidth, sourceHeight, mobileAspectRatio);
+
+      expectCropsToBeClose(computeCrop({ ...sliders, sourceWidth, sourceHeight, aspectRatio: mobileAspectRatio }), derived);
+    }
+  });
+
+  it('keeps the crop as is for the same aspect ratio', () => {
+    const crop = computeCrop({ sourceWidth: 4000, sourceHeight: 3000, aspectRatio: 16 / 9, rotation: 90, zoom: 1.5, panX: 0.3, panY: -0.2 });
+
+    expectCropsToBeClose(deriveCrop(crop, 16 / 9), crop);
+  });
+
+  it('takes the middle of a landscape crop for a portrait mobile format', () => {
+    const derived = deriveCrop({ x: 100, y: 50, width: 1600, height: 900, rotation: 0 }, 3 / 4);
+
+    expectCropsToBeClose(derived, { x: 100 + (1600 - 675) / 2, y: 50, width: 675, height: 900, rotation: 0 });
   });
 });

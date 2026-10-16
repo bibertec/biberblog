@@ -13,4 +13,7 @@ export type ModuleFieldAnswer = {
   titleField?: string;
   imageWidth?: number;
   imageHeight?: number;
+  /** Optional mobile variant of an `EditableImage` field (both or none). */
+  imageMobileWidth?: number;
+  imageMobileHeight?: number;
 };

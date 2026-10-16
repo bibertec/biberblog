@@ -7,14 +7,14 @@ import { ImageCropper } from './ImageCropper.client';
 import { useImageCropEditor } from './useImageCropEditor.client';
 import { CollectionImage, useCollectionImageUrl } from '../collection/CollectionImages.client';
 import { isTempImageDraft, type ImageDraft } from '@/src/system/content/imageSchema';
-import type { ImageFieldRules } from '@/src/project/content/imageFieldRegistry';
+import { desktopRules, type ImageVariantRules } from '@/src/system/content/imageFieldRules';
 import { translations } from '@/src/project/config/translations';
 
 const THUMBNAIL_WIDTH = 128;
 
 type ImageFieldInputProps = {
   value: ImageDraft;
-  rules: ImageFieldRules;
+  rules: ImageVariantRules;
   onChange: (value: ImageDraft) => void;
 };
 
@@ -25,7 +25,8 @@ type ImageFieldInputProps = {
  */
 export default function ImageFieldInput({ value, rules, onChange }: ImageFieldInputProps) {
   const imageUrl = useCollectionImageUrl(isTempImageDraft(value) ? '' : value.src);
-  const editor = useImageCropEditor({ current: value, currentImageUrl: imageUrl, rules });
+  // Image item fields have no mobile variant: never pass a `mobile` entry on to the dialog.
+  const editor = useImageCropEditor({ current: value, currentImage: { src: imageUrl }, rules: desktopRules(rules) });
   const [isOpen, setIsOpen] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);

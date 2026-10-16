@@ -2,7 +2,7 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import { EditableImageDisplay, type ImageLoadingProps } from '../image/EditableImageDisplay';
-import type { ImageFieldRules } from '@/src/project/content/imageFieldRegistry';
+import type { ImageVariantRules } from '@/src/system/content/imageFieldRules';
 import { isTempImageDraft, type ImageDraft } from '@/src/system/content/imageSchema';
 import type { ResolvedImages } from '@/src/system/lib/images/loadContentImage';
 
@@ -30,7 +30,8 @@ export function useCollectionImageUrl(src: string): string {
 type CollectionImageProps = ImageLoadingProps & {
   /** In editor mode an item can hold an unpublished draft (`TempImageDraft`) instead of `ImageValue`. */
   value: ImageDraft;
-  rules: ImageFieldRules;
+  /** Image item fields have no mobile variant (a `mobile` entry in `imageFieldRegistry` is ignored). */
+  rules: ImageVariantRules;
   className?: string;
   /** Rendered size; defaults to the target size from `imageFieldRegistry`. */
   width?: number;
@@ -60,7 +61,7 @@ export function CollectionImage({ value, rules, className, width = rules.maxWidt
     <EditableImageDisplay
       className={className}
       image={{ src: publishedSrc }}
-      rules={{ ...rules, maxWidth: width, maxHeight: height }}
+      rules={{ aspectRatio: rules.aspectRatio, maxWidth: width, maxHeight: height }}
       alt={value.alt}
       {...loadingProps}
     />

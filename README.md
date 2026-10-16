@@ -48,7 +48,7 @@ If your customer publishes content frequently (news, blog posts) or you need sev
 | `EditableText`       | Plain text (headings, labels, short texts)                                                                                                    |
 | `EditableRichtext`   | Paragraphs with bold text, bullet/numbered lists, internal and external links – deliberately nothing more                                     |
 | `EditableCollection` | Lists of items (e.g. team members, FAQs): add, remove, reorder, edit – the item structure (text, richtext and image fields) is defined by you |
-| `EditableImage`      | Upload an image and choose the crop (zoom, pan, rotate) – the output size is fixed by you                                                     |
+| `EditableImage`      | Upload an image and choose the crop (zoom, pan, rotate) – the output size is fixed by you, optionally with its own smartphone image or crop   |
 
 In addition, the customer maintains the **SEO title and description** of every page in one dialog ("SEO" in the editor navbar). Each page file exports its `metadata` from these values.
 

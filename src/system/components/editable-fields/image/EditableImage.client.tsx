@@ -4,7 +4,7 @@ import { EditorFieldProps } from '../types';
 import { useEditorMode } from '@/src/system/store/editor-mode';
 import { EditableImageDisplay, type ImageLoadingProps } from './EditableImageDisplay';
 import type { ImageValue } from '@/src/system/content/imageSchema';
-import type { ImageFieldRules } from '@/src/project/content/imageFieldRegistry';
+import type { ImageFieldRules } from '@/src/system/content/imageFieldRules';
 import type { ResolvedImage } from '@/src/system/lib/images/loadContentImage';
 
 const EditableImageEditor = dynamic(() => import('./EditableImage.editor.client'), {

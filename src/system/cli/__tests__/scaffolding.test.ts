@@ -217,6 +217,8 @@ describe('scaffolding CLI', { timeout: 120_000 }, () => {
       fieldName: 'banner',
       imageWidth: 800,
       imageHeight: 400,
+      imageMobileWidth: 400,
+      imageMobileHeight: 600,
     });
     project.run('module:add-editable-field', { moduleName: SIMPLE, contentType: 'EditableText', fieldName: 'subtitle' });
 
@@ -225,6 +227,15 @@ describe('scaffolding CLI', { timeout: 120_000 }, () => {
     expect(
       registryHas(REGISTRIES.images, new RegExp(`['"]${SIMPLE}\\.banner['"]\\s*:\\s*\\{[^}]*maxWidth:\\s*800[^}]*maxHeight:\\s*400`)),
     ).toBe(true);
+    // Optional mobile variant: nested in the same entry, as an exact fraction like the desktop format.
+    expect(
+      registryHas(
+        REGISTRIES.images,
+        new RegExp(`['"]${SIMPLE}\\.banner['"]\\s*:[^}]*mobile:\\s*\\{\\s*aspectRatio:\\s*400 / 600,\\s*maxWidth:\\s*400,\\s*maxHeight:\\s*600\\s*\\}`),
+      ),
+    ).toBe(true);
+    // Collection item images never get one.
+    expect(registryHas(REGISTRIES.images, new RegExp(`['"]${SIMPLE}\\.faqs\\.icon['"]\\s*:[^}]*mobile`))).toBe(false);
     expect(registryHas(REGISTRIES.images, new RegExp(`['"]${SIMPLE}\\.faqs\\.icon['"]\\s*:`))).toBe(true);
 
     for (const [, entry] of instancesOf(SIMPLE)) {
@@ -284,6 +295,19 @@ describe('scaffolding CLI', { timeout: 120_000 }, () => {
     expect(() => project.run('module:add-editable-field', { moduleName: SIMPLE, contentType: 'EditableImage', fieldName: 'noSize' })).toThrow(
       /positive integer/,
     );
+    expect(() =>
+      project.run('module:add-editable-field', {
+        moduleName: SIMPLE,
+        contentType: 'EditableImage',
+        fieldName: 'halfMobile',
+        imageWidth: 800,
+        imageHeight: 400,
+        imageMobileWidth: 400,
+      }),
+    ).toThrow(/Mobile image height must be a positive integer/);
+    expect(() =>
+      project.run('module:add-editable-field', { moduleName: SIMPLE, contentType: 'EditableText', fieldName: 'textMobile', imageMobileWidth: 400, imageMobileHeight: 600 }),
+    ).toThrow(/Only "EditableImage" fields have a mobile variant/);
     expect(() =>
       project.run('module:add-editable-field', {
         moduleName: SIMPLE,

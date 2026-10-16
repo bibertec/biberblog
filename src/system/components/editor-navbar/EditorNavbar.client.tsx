@@ -6,7 +6,7 @@ import { useEditorMode, parseDraftKey } from '@/src/system/store/editor-mode';
 import { BookOpen, LogOut, SearchCheck, UploadCloud, X } from 'lucide-react';
 import { logoutEditor } from '@/src/system/lib/auth/actions';
 import { discardTempImage } from '@/src/system/lib/images/actions';
-import { tempImageDraftSchema } from '@/src/system/content/imageSchema';
+import { tempPathnamesOf } from '@/src/system/content/imageSchema';
 import { pageLinks } from '@/src/system/content/pageLinks';
 import { publishContent } from '@/src/system/lib/publish/actions';
 import { Dialog } from '../dialog/Dialog.client';
@@ -19,8 +19,7 @@ import { translations } from '@/src/project/config/translations';
 function tempImagePathnamesIn(drafts: Record<string, unknown>): string[] {
   const pathnames: string[] = [];
   function collect(value: unknown) {
-    const draft = tempImageDraftSchema.safeParse(value);
-    if (draft.success) pathnames.push(draft.data.temp.pathname);
+    pathnames.push(...tempPathnamesOf(value));
   }
   for (const value of Object.values(drafts)) {
     collect(value);

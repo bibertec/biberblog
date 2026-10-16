@@ -5,13 +5,18 @@ import { pageRegistry } from '@/src/generated/pageRegistry';
 import { moduleRegistry } from '@/src/generated/moduleRegistry';
 import { pageContentSchema, type PageContent } from '@/src/system/content/pageContentSchema';
 import type { ModuleRegistryEntry, PageRegistryEntry } from '@/src/system/content/registryTypes';
-import { tempImageDraftSchema, type ImageValue } from '@/src/system/content/imageSchema';
-import { SEO_FIELD_ID, seoSchema } from '@/src/system/content/seo';
 import {
-  imageFieldRegistry,
-  imageFieldRegistryKey,
-  type ImageFieldRules,
-} from '@/src/project/content/imageFieldRegistry';
+  isTempVariantDraft,
+  responsiveImageDraftSchema,
+  tempImageDraftSchema,
+  type CropData,
+  type ImageValue,
+  type ResponsiveImageDraft,
+  type TempImage,
+} from '@/src/system/content/imageSchema';
+import { SEO_FIELD_ID, seoSchema } from '@/src/system/content/seo';
+import { imageFieldRegistry, imageFieldRegistryKey } from '@/src/project/content/imageFieldRegistry';
+import { desktopRules, type ImageFieldRules, type ImageVariantRules } from '@/src/system/content/imageFieldRules';
 import { parseDraftKey } from '@/src/system/store/editor-mode';
 import { checkEditorSession } from '@/src/system/lib/auth/actions';
 import {
@@ -27,11 +32,15 @@ import { translations } from '@/src/project/config/translations';
 const COMMIT_MESSAGE = 'content: customer update';
 
 /**
- * Only images produced by the publish flow (`/images/<uuid>.webp`) may be deleted when replaced –
- * never the default placeholder or images added by the developer.
+ * Only images produced by the publish flow (`/images/<uuid>.webp`, mobile variants
+ * `/images/<uuid>-mobile.webp`) may be deleted when replaced – never the default placeholder or
+ * images added by the developer.
  */
 const GENERATED_IMAGE_SRC_PATTERN =
-  /^\/images\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.webp$/;
+  /^\/images\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:-mobile)?\.webp$/;
+
+/** File name suffix of the mobile variant – desktop and mobile may come from the same upload. */
+const MOBILE_FILE_SUFFIX = '-mobile';
 
 export type PublishResult =
   | {
@@ -92,34 +101,83 @@ function validateMergedPage(content: PageContent, repoPath: string): PageContent
 
 type ImageWork = {
   files: FileWrite[];
-  tempPathnames: string[];
+  /** Deleted after a successful commit. */
+  tempPathnames: Set<string>;
 };
+
+function imageRules(registryKey: string): ImageFieldRules {
+  const rules = imageFieldRegistry[registryKey as keyof typeof imageFieldRegistry] as ImageFieldRules | undefined;
+  if (!rules) {
+    throw new Error(`"${registryKey}" is not a known image field.`);
+  }
+
+  return rules;
+}
+
+async function readTempImage(temp: TempImage): Promise<Buffer> {
+  const bytes = await readTempBlobBytes(temp.pathname);
+  if (bytes.length !== temp.size) {
+    throw new ImageBlobError(translations.errors.tempImageMismatch);
+  }
+
+  return bytes;
+}
+
+/** Crops one uploaded original into a new WEBP of the same commit and returns its path. */
+async function processVariant(
+  variant: { temp: TempImage; crop: CropData },
+  rules: ImageVariantRules,
+  work: ImageWork,
+  { suffix = '', bytes }: { suffix?: string; bytes?: Buffer } = {},
+): Promise<string> {
+  const output = await processImageCrop(bytes ?? (await readTempImage(variant.temp)), variant.crop, rules);
+  const finalPath = `/images/${assetIdFromTempPathname(variant.temp.pathname)}${suffix}.webp`;
+  work.files.push({
+    repoPath: `public${finalPath}`,
+    content: output.toString('base64'),
+    encoding: 'base64',
+  });
+  work.tempPathnames.add(variant.temp.pathname);
+
+  return finalPath;
+}
 
 async function resolveImageDraft(
   registryKey: string,
   draft: z.infer<typeof tempImageDraftSchema>,
   work: ImageWork,
 ): Promise<ImageValue> {
-  const rules = imageFieldRegistry[registryKey as keyof typeof imageFieldRegistry] as
-    | ImageFieldRules
-    | undefined;
-  if (!rules) {
-    throw new Error(`"${registryKey}" is not a known image field.`);
-  }
-  const bytes = await readTempBlobBytes(draft.temp.pathname);
-  if (bytes.length !== draft.temp.size) {
-    throw new ImageBlobError(translations.errors.tempImageMismatch);
-  }
-  const output = await processImageCrop(bytes, draft.crop, rules);
-  const finalPath = `/images/${assetIdFromTempPathname(draft.temp.pathname)}.webp`;
-  work.files.push({
-    repoPath: `public${finalPath}`,
-    content: output.toString('base64'),
-    encoding: 'base64',
-  });
-  work.tempPathnames.push(draft.temp.pathname);
+  const src = await processVariant(draft, imageRules(registryKey), work);
 
-  return { src: finalPath, alt: draft.alt };
+  return { src, alt: draft.alt };
+}
+
+/**
+ * A field with a mobile variant: every variant with a temp blob becomes a new WEBP in its own
+ * dimensions, a variant kept as is (`{ src }`) keeps its file. Both files of one upload get
+ * distinct names (`<uuid>.webp`, `<uuid>-mobile.webp`).
+ */
+async function resolveResponsiveImageDraft(
+  registryKey: string,
+  draft: ResponsiveImageDraft,
+  work: ImageWork,
+): Promise<ImageValue> {
+  const rules = imageRules(registryKey);
+  if (!rules.mobile) {
+    throw new Error(`"${registryKey}" has no mobile variant.`);
+  }
+  const { desktop, mobile } = draft;
+  // The same upload cropped twice is downloaded once (only for this field – sharp needs a lot of memory).
+  const sharedBytes =
+    isTempVariantDraft(desktop) && isTempVariantDraft(mobile) && desktop.temp.pathname === mobile.temp.pathname
+      ? await readTempImage(desktop.temp)
+      : undefined;
+  const src = isTempVariantDraft(desktop) ? await processVariant(desktop, desktopRules(rules), work, { bytes: sharedBytes }) : desktop.src;
+  const mobileSrc = isTempVariantDraft(mobile)
+    ? await processVariant(mobile, rules.mobile, work, { suffix: MOBILE_FILE_SUFFIX, bytes: sharedBytes })
+    : mobile.src;
+
+  return { src, alt: draft.alt, mobile: { src: mobileSrc, mode: draft.mobile.mode } };
 }
 
 /**
@@ -136,6 +194,10 @@ async function resolveFieldDraft(
   const imageDraft = tempImageDraftSchema.safeParse(value);
   if (imageDraft.success) {
     return resolveImageDraft(imageFieldRegistryKey(moduleType, fieldName), imageDraft.data, work);
+  }
+  const responsiveImageDraft = responsiveImageDraftSchema.safeParse(value);
+  if (responsiveImageDraft.success) {
+    return resolveResponsiveImageDraft(imageFieldRegistryKey(moduleType, fieldName), responsiveImageDraft.data, work);
   }
   if (!Array.isArray(value)) return value;
 
@@ -206,7 +268,7 @@ export async function publishContent(drafts: Record<string, unknown>): Promise<P
   }
   const registry = pageRegistry as Record<string, PageRegistryEntry>;
   const contentByPathname = new Map<string, PageContent>();
-  const imageWork: ImageWork = { files: [], tempPathnames: [] };
+  const imageWork: ImageWork = { files: [], tempPathnames: new Set() };
   // Every image the changed fields referenced before – deleted if generated and no longer used.
   const previousImageSrcs = new Set<string>();
   try {
@@ -246,7 +308,7 @@ export async function publishContent(drafts: Record<string, unknown>): Promise<P
       [...contentFiles, ...imageWork.files, ...imageDeletes],
       COMMIT_MESSAGE,
     );
-    await Promise.allSettled(imageWork.tempPathnames.map((pathname) => deleteTempBlob(pathname)));
+    await Promise.allSettled([...imageWork.tempPathnames].map((pathname) => deleteTempBlob(pathname)));
     return {
       success: true,
       commitSha,

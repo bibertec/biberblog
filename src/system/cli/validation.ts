@@ -25,6 +25,8 @@ export type FieldDefinition = {
   titleField?: string;
   imageWidth?: number;
   imageHeight?: number;
+  imageMobileWidth?: number;
+  imageMobileHeight?: number;
 };
 
 export function assertValidFieldDefinition(field: FieldDefinition): void {
@@ -35,6 +37,12 @@ export function assertValidFieldDefinition(field: FieldDefinition): void {
   if (field.contentType === 'EditableImage') {
     assertPositiveInteger(field.imageWidth, 'Image width');
     assertPositiveInteger(field.imageHeight, 'Image height');
+    if (field.imageMobileWidth !== undefined || field.imageMobileHeight !== undefined) {
+      assertPositiveInteger(field.imageMobileWidth, 'Mobile image width');
+      assertPositiveInteger(field.imageMobileHeight, 'Mobile image height');
+    }
+  } else if (field.imageMobileWidth !== undefined || field.imageMobileHeight !== undefined) {
+    throw new Error(`Only "EditableImage" fields have a mobile variant ("${field.fieldName}" is "${field.contentType}").`);
   }
   if (field.contentType === 'EditableCollection') {
     const itemFields = field.itemFields ?? [];

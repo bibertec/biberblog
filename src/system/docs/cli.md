@@ -67,7 +67,7 @@ Select the page. Deletes the content file and the complete page folder in `app/*
 npm run module:create
 ```
 
-Name the module (PascalCase) and add any number of editable fields (`EditableText`, `EditableRichtext`, `EditableCollection`, `EditableImage`). For collections you define the item fields (`EditableText`, `EditableRichtext`, `EditableImage`) and the title field; for images – also image item fields – the fixed target width and height in pixels. The module is created in `src/project/components/modules/<Module>/` – from there, markup, styling and the order of the fields are entirely up to you.
+Name the module (PascalCase) and add any number of editable fields (`EditableText`, `EditableRichtext`, `EditableCollection`, `EditableImage`). For collections you define the item fields (`EditableText`, `EditableRichtext`, `EditableImage`) and the title field; for images – also image item fields – the fixed target width and height in pixels, and for top-level image fields optionally a smartphone variant with its own width and height. The module is created in `src/project/components/modules/<Module>/` – from there, markup, styling and the order of the fields are entirely up to you.
 
 ### Add a module to a page
 
@@ -101,7 +101,7 @@ Deletes the module folder and its registry entries. Only works if the module is 
 npm run module:add-editable-field
 ```
 
-Select the module, the field type and a field name. For `EditableImage`, also enter the fixed target width and height in pixels (see [Image](./images.md)). The field is added with a default value to every page that already uses the module.
+Select the module, the field type and a field name. For `EditableImage`, also enter the fixed target width and height in pixels and, optionally, the size of a smartphone variant (see [Image](./images.md)). The field is added with a default value to every page that already uses the module.
 
 ### Remove an editable field (destructive)
 

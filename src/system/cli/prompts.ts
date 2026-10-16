@@ -9,10 +9,19 @@ type Inquirer = Parameters<Extract<PlopGeneratorConfig['prompts'], (...args: nev
 const positiveInteger = (input: number | undefined) =>
   (typeof input === 'number' && Number.isInteger(input) && input > 0) || 'Please enter a positive integer.';
 
+type ImageDimensions = {
+  imageWidth: number;
+  imageHeight: number;
+  /** Optional mobile variant – only offered for top-level image fields, not inside collections. */
+  imageMobileWidth?: number;
+  imageMobileHeight?: number;
+};
+
 export async function promptImageDimensions(
   inquirer: Inquirer,
-): Promise<{ imageWidth: number; imageHeight: number }> {
-  return inquirer.prompt([
+  { offerMobileVariant = false }: { offerMobileVariant?: boolean } = {},
+): Promise<ImageDimensions> {
+  const dimensions: ImageDimensions = await inquirer.prompt([
     {
       type: 'number',
       name: 'imageWidth',
@@ -26,6 +35,32 @@ export async function promptImageDimensions(
       validate: positiveInteger,
     },
   ]);
+  if (!offerMobileVariant) return dimensions;
+  const { withMobileVariant } = await inquirer.prompt([
+    {
+      type: 'confirm',
+      name: 'withMobileVariant',
+      message: 'Add a smartphone variant (own format below 768 px, editors can choose a different image or crop)?',
+      default: false,
+    },
+  ]);
+  if (!withMobileVariant) return dimensions;
+  const mobile = await inquirer.prompt([
+    {
+      type: 'number',
+      name: 'imageMobileWidth',
+      message: 'Smartphone target width in pixels?',
+      validate: positiveInteger,
+    },
+    {
+      type: 'number',
+      name: 'imageMobileHeight',
+      message: 'Smartphone target height in pixels?',
+      validate: positiveInteger,
+    },
+  ]);
+
+  return { ...dimensions, ...mobile };
 }
 
 /** Item fields of a new collection plus the item field shown as title in the editor's item list. */

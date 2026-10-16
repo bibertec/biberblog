@@ -1,7 +1,7 @@
 import 'server-only';
 import sharp from 'sharp';
 import type { CropData } from '../../content/imageSchema';
-import type { ImageFieldRules } from '@/src/project/content/imageFieldRegistry';
+import type { ImageVariantRules } from '@/src/system/content/imageFieldRules';
 import { translations } from '@/src/project/config/translations';
 
 const WEBP_QUALITY = 80;
@@ -12,7 +12,7 @@ const ASPECT_RATIO_TOLERANCE = 0.001;
 
 export class ImageProcessingError extends Error {}
 
-export function assertCropAspectRatio(crop: CropData, rules: ImageFieldRules): void {
+export function assertCropAspectRatio(crop: CropData, rules: ImageVariantRules): void {
   const actualRatio = crop.width / crop.height;
   if (Math.abs(actualRatio - rules.aspectRatio) > ASPECT_RATIO_TOLERANCE) {
     throw new ImageProcessingError(translations.errors.cropFormatMismatch);
@@ -22,7 +22,7 @@ export function assertCropAspectRatio(crop: CropData, rules: ImageFieldRules): v
 export async function processImageCrop(
   input: Buffer,
   crop: CropData,
-  rules: ImageFieldRules,
+  rules: ImageVariantRules,
 ): Promise<Buffer> {
   assertCropAspectRatio(crop, rules);
   try {

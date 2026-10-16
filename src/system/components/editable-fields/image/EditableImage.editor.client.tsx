@@ -3,12 +3,18 @@
 import { usePathname } from 'next/navigation';
 import { EditableImageProps } from './EditableImage.client';
 import { EditableImageDisplay } from './EditableImageDisplay';
-import { EditableImageDraftPreview } from './EditableImageDraftPreview.client';
+import { EditableImageDraftPreview, ResponsiveImageDraftPreview } from './EditableImageDraftPreview.client';
 import { ImageCropper } from './ImageCropper.client';
 import { useImageCropEditor } from './useImageCropEditor.client';
 import EditableFieldWrapper from '../../editable-field-wrapper/EditableFieldWrapper.client';
 import { useEditorMode, draftKey } from '@/src/system/store/editor-mode';
-import { isTempImageDraft, type ImageDraft } from '@/src/system/content/imageSchema';
+import {
+  isResponsiveImageDraft,
+  isSameImageValue,
+  isTempImageDraft,
+  tempPathnamesOf,
+  type FieldImageDraft,
+} from '@/src/system/content/imageSchema';
 import { discardTempImage } from '@/src/system/lib/images/actions';
 import { translations } from '@/src/project/config/translations';
 
@@ -22,66 +28,60 @@ export default function EditableImageEditor({
 }: EditableImageProps) {
   const pathname = usePathname();
   const key = draftKey(pathname, fieldId);
-  const draft = useEditorMode((state) => state.drafts[key] as ImageDraft | undefined);
-  const tempDraft = isTempImageDraft(draft) ? draft : undefined;
+  const draft = useEditorMode((state) => state.drafts[key] as FieldImageDraft | undefined);
   const setDraft = useEditorMode((state) => state.setDraft);
   const revertDraft = useEditorMode((state) => state.revertDraft);
-  const editor = useImageCropEditor({ current: draft ?? value, currentImageUrl: image.src, rules });
+  const editor = useImageCropEditor({ current: draft ?? value, currentImage: image, rules, published: value });
 
   async function handleSave(): Promise<void> {
     const next = await editor.save();
-    const isPublishedValue = !isTempImageDraft(next) && next.src === value.src && next.alt === value.alt;
+    const isPublishedValue = !isTempImageDraft(next) && !isResponsiveImageDraft(next) && isSameImageValue(next, value);
     if (isPublishedValue) {
       revertDraft(key);
     } else {
       setDraft(key, next);
     }
-    // A replaced temp upload is no longer referenced anywhere.
-    const previousTempPathname = tempDraft?.temp.pathname;
-    if (previousTempPathname && (!isTempImageDraft(next) || next.temp.pathname !== previousTempPathname)) {
-      void discardTempImage(previousTempPathname);
+    // Replaced temp uploads are no longer referenced anywhere.
+    const kept = new Set(tempPathnamesOf(next));
+    for (const previousTempPathname of tempPathnamesOf(draft)) {
+      if (!kept.has(previousTempPathname)) void discardTempImage(previousTempPathname);
     }
   }
 
   function handleRevert() {
-    const previousTempPathname = tempDraft?.temp.pathname;
+    const previousTempPathnames = tempPathnamesOf(draft);
     revertDraft(key);
-    if (previousTempPathname) {
-      void discardTempImage(previousTempPathname);
-    }
-    editor.reset(value.alt);
+    previousTempPathnames.forEach((previousTempPathname) => void discardTempImage(previousTempPathname));
+    editor.reset(value);
   }
 
-  const closedContent = (
-    <div className="relative inline-block">
-      {tempDraft ? (
+  function draftPreview() {
+    if (isResponsiveImageDraft(draft) && rules.mobile) {
+      return <ResponsiveImageDraftPreview className={className} draft={draft} image={image} rules={{ ...rules, mobile: rules.mobile }} />;
+    }
+    if (isTempImageDraft(draft)) {
+      return (
         <EditableImageDraftPreview
-          key={`${tempDraft.temp.pathname}:${tempDraft.crop.x}:${tempDraft.crop.y}:${tempDraft.crop.width}:${tempDraft.crop.height}:${tempDraft.crop.rotation}`}
+          key={`${draft.temp.pathname}:${draft.crop.x}:${draft.crop.y}:${draft.crop.width}:${draft.crop.height}:${draft.crop.rotation}`}
           className={className}
-          tempPathname={tempDraft.temp.pathname}
-          crop={tempDraft.crop}
+          tempPathname={draft.temp.pathname}
+          crop={draft.crop}
           width={rules.maxWidth}
           height={rules.maxHeight}
-          alt={tempDraft.alt}
+          alt={draft.alt}
         />
-      ) : (
-        <EditableImageDisplay
-          className={className}
-          image={image}
-          rules={rules}
-          alt={draft?.alt ?? value.alt}
-          {...loadingProps}
-        />
-      )}
-    </div>
-  );
+      );
+    }
+
+    return <EditableImageDisplay className={className} image={image} rules={rules} alt={draft?.alt ?? value.alt} {...loadingProps} />;
+  }
 
   return (
     <EditableFieldWrapper
       title={translations.image.dialogTitle}
       isDirty={draft !== undefined}
       confirmLabel={translations.common.apply}
-      displayContent={closedContent}
+      displayContent={<div className="relative inline-block">{draftPreview()}</div>}
       modalContent={<ImageCropper key={editor.cropperKey} {...editor.cropperProps} />}
       onOpen={editor.open}
       onSave={handleSave}
