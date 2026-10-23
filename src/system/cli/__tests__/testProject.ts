@@ -10,17 +10,22 @@ const REPO_ROOT = fileURLToPath(new URL('../../../..', import.meta.url));
 const COPIED_ENTRIES = ['app', 'src', 'tsconfig.json', 'package.json'];
 
 /**
- * Runs a generator the same way the CLI does: plain Node (native type stripping) loading
+ * Runs a generator the same way `npm run scaffold` does: plain Node (native type stripping) loading
  * `src/system/cli/plopfile.ts`, with the project root as target. Only the interactive prompts are
  * skipped – the answers are passed in directly, so the tests describe the contract between prompts
- * and actions.
+ * and actions. Unlike `npm run scaffold`, every generator is allowed.
  */
 const RUNNER = `
-import nodePlop from 'node-plop';
+import { runScaffold, ScaffoldError } from './src/system/cli/scaffold.ts';
 const [name, answersJson] = process.argv.slice(1);
-const plop = await nodePlop(process.cwd() + '/src/system/cli/plopfile.ts', { destBasePath: process.cwd() });
-const result = await plop.getGenerator(name).runActions(JSON.parse(answersJson));
-process.stdout.write(JSON.stringify({ failures: result.failures.map((f) => String(f.error)) }));
+let failures = [];
+try {
+  await runScaffold(name, JSON.parse(answersJson), { allowAll: true });
+} catch (error) {
+  if (!(error instanceof ScaffoldError)) throw error;
+  failures = [error.message];
+}
+process.stdout.write(JSON.stringify({ failures }));
 `;
 
 export type TestProject = {

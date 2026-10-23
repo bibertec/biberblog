@@ -131,6 +131,72 @@ npm run module:remove-custom-field
 
 If the field is still used in the markup, TypeScript reports an error – remove the usage by hand.
 
+## Non-interactive (scripts, Claude Code)
+
+```bash
+npm run scaffold -- <generator> '<answers-json>'
+```
+
+Runs `page:add`, `page:add-module` or `module:create` without the prompts: the answers are passed as one JSON object and validated by the generator's actions, exactly as if they had been entered interactively. Prints the changed files; on invalid answers it fails with the error message and exit code 1. The destructive generators can only be run interactively.
+
+Put the JSON in single quotes so the shell passes it unchanged. The answers are the same as in the interactive prompts – type: `ModuleFieldAnswer` in `src/system/cli/types.ts`.
+
+### Example: a new page with two new modules
+
+```bash
+# 1. Module with a text field
+npm run scaffold -- module:create '{"moduleName":"Hero","fields":[{"fieldName":"headline","contentType":"EditableText"}]}'
+
+# 2. Module with every field type
+npm run scaffold -- module:create '{
+  "moduleName": "Features",
+  "fields": [
+    { "fieldName": "headline", "contentType": "EditableText" },
+    { "fieldName": "intro", "contentType": "EditableRichtext" },
+    { "fieldName": "image", "contentType": "EditableImage", "imageWidth": 1600, "imageHeight": 900,
+      "imageMobileWidth": 800, "imageMobileHeight": 1000 },
+    { "fieldName": "items", "contentType": "EditableCollection", "titleField": "title",
+      "itemFields": [
+        { "fieldName": "title", "contentType": "EditableText" },
+        { "fieldName": "text", "contentType": "EditableRichtext" },
+        { "fieldName": "icon", "contentType": "EditableImage", "imageWidth": 160, "imageHeight": 160 }
+      ] }
+  ]
+}'
+
+# 3. Page (label optional, default derived from the slug: "about-us" → "About us")
+npm run scaffold -- page:add '{"pageSlug":"services","label":"Services"}'
+
+# 4. Put the modules on the page (in this order)
+npm run scaffold -- page:add-module '{"pageSlug":"services","modulesToAdd":["Hero","Features"]}'
+```
+
+A page built like an existing one (modules with their default content, see "Add a page"):
+
+```bash
+npm run scaffold -- page:add '{"pageSlug":"terms","label":"Terms","basePageSlug":"privacy"}'
+```
+
+### Answers per generator
+
+| Generator | Keys |
+|---|---|
+| `page:add` | `pageSlug` (kebab-case), optional `label`, optional `basePageSlug` |
+| `page:add-module` | `pageSlug`, `modulesToAdd` (module names, added in this order; a name may appear several times) |
+| `module:create` | `moduleName` (PascalCase), `fields` (at least one) |
+
+Per entry in `fields`:
+
+| `contentType` | Additional keys |
+|---|---|
+| `EditableText`, `EditableRichtext` | – |
+| `EditableImage` | `imageWidth`, `imageHeight` (output size in px); optional both `imageMobileWidth` and `imageMobileHeight` |
+| `EditableCollection` | `itemFields` (entries like above, but only `EditableText`, `EditableRichtext`, `EditableImage` – images without mobile variant), `titleField` (name of an `EditableText` item field) |
+
+Field names are camelCase and unique within the module.
+
+Used by the Claude Code skill `/module-from-figma` – see [Claude Code](./claude-code.md).
+
 ## Images
 
 ### Optimize static images

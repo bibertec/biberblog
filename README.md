@@ -211,6 +211,7 @@ biberblog 1.0.0 is the first public release. What changes from version to versio
 | [`src/system/docs/richtext.md`](./src/system/docs/richtext.md) · [`src/system/docs/collection.md`](./src/system/docs/collection.md) · [`src/system/docs/store.md`](./src/system/docs/store.md) | Field types and editor state                            |
 | [`src/system/docs/plop.md`](./src/system/docs/plop.md)                                                                                                                                         | How the scaffolding works internally                    |
 | [`src/system/docs/update.md`](./src/system/docs/update.md)                                                                                                                                     | System updates and releases                             |
+| [`src/system/docs/claude-code.md`](./src/system/docs/claude-code.md)                                                                                                                            | Claude Code: non-interactive scaffolding, Figma skill   |
 
 ---
 

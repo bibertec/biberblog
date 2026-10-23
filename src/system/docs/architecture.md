@@ -92,6 +92,7 @@ Development:
 | Package | Why |
 |---|---|
 | `plop`, `inquirer` | CLI scaffolding for pages, modules and fields; `inquirer` also for the prompts of `npm run setup` and `editor:set-password`. |
+| `node-plop` | Runs the Plop generators without prompts: `npm run scaffold` and the generator tests (Plop's own engine, used directly). |
 | `ts-morph` | Lets the CLI change existing code via the syntax tree (AST) instead of text search – robust against formatting and manual changes. |
 | `tailwindcss`, `@tailwindcss/postcss` | Styling of the project and the editor UI. |
 | `typescript`, `@types/*` | Type checking; `satisfies` checks tie registries, content and translations together. |
