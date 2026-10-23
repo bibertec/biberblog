@@ -200,12 +200,18 @@ describe('scaffolding CLI', { timeout: 120_000 }, () => {
     expect(page.match(/^import plopTestPageContent /gm)).toHaveLength(1);
   });
 
-  it('page:add with a base page copies its modules in render order, with default content', () => {
+  it('page:add with a base page copies its rendered modules in render order, with default content', () => {
     // The developer reordered the modules in the page file: that order counts, not the JSON order.
     const [teamLine] = project.read(PAGE_FILE).split('\n').filter((line) => line.includes(`<${TEAM} `));
     project.write(PAGE_FILE, project.read(PAGE_FILE).replace(`${teamLine}\n`, '').replace('</main>', `${teamLine}\n      </main>`));
 
+    // An instance only left in the JSON (no longer rendered) is not copied.
+    const basePage = project.readJson<PageContent>(PAGE_CONTENT);
+    const stale = { ...basePage, modules: { ...basePage.modules, stale1: { type: SIMPLE, content: {} } } };
+    project.write(PAGE_CONTENT, `${JSON.stringify(stale, null, 2)}\n`);
+
     project.run('page:add', { pageSlug: COPY, label: 'Plop test copy', basePageSlug: PAGE });
+    project.write(PAGE_CONTENT, `${JSON.stringify(basePage, null, 2)}\n`);
 
     const copy = project.readJson<PageContent>(`src/project/content/${COPY}.json`);
     expect(Object.values(copy.modules).map((entry) => entry.type)).toEqual([SIMPLE, SIMPLE, TEAM]);

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import type { NodePlopAPI } from 'plop';
-import { addModuleToPage, removeModuleFromPage, sortByRenderOrder } from '../codemods/page.ts';
+import { addModuleToPage, removeModuleFromPage, renderedInOrder } from '../codemods/page.ts';
 import { assertModuleExists, moduleFile, pageContentPath, readJson, updateJson, type PageContent } from '../content.ts';
 
 function assertPageExists(pageSlug: string): void {
@@ -50,10 +50,13 @@ export function registerPageModuleActions(plop: NodePlopAPI) {
     const { pageSlug, basePageSlug } = answers as { pageSlug: string; basePageSlug: string };
     assertPageExists(basePageSlug);
     const { modules } = readJson<PageContent>(pageContentPath(basePageSlug));
-    const moduleTypes = sortByRenderOrder(basePageSlug, Object.keys(modules)).map((instanceId) => modules[instanceId].type);
-    if (moduleTypes.length === 0) return `"${basePageSlug}" has no modules to copy`;
+    const rendered = renderedInOrder(basePageSlug, Object.keys(modules));
+    // Instances only left in the JSON would otherwise come back to life on the new page.
+    const skipped = Object.keys(modules).filter((instanceId) => !rendered.includes(instanceId));
+    const note = skipped.length > 0 ? ` (skipped, not rendered on "${basePageSlug}": ${skipped.join(', ')})` : '';
+    if (rendered.length === 0) return `"${basePageSlug}" has no modules to copy${note}`;
 
-    return addModules(pageSlug, moduleTypes);
+    return `${addModules(pageSlug, rendered.map((instanceId) => modules[instanceId].type))}${note}`;
   });
 
   plop.setActionType('removeModuleFromPage', async (answers) => {

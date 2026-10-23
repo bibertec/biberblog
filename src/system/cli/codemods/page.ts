@@ -38,13 +38,20 @@ export function addModuleToPage(pageSlug: string, instanceId: string, moduleType
   });
 }
 
-/** Sorts instance ids by where the page file renders them (the developer may have reordered them). */
-export function sortByRenderOrder(pageSlug: string, instanceIds: string[]): string[] {
+/**
+ * The instance ids the page file renders, in render order (the developer may have reordered them).
+ * Ids that are only left in the content JSON are dropped.
+ */
+export function renderedInOrder(pageSlug: string, instanceIds: string[]): string[] {
   const page = getDefaultExportFunction(readSourceFile(pagePathFor(pageSlug)));
-  const position = (instanceId: string) =>
-    findJsxElementsByAttribute(page, 'id', idMatcher(instanceId))[0]?.getStart() ?? Number.MAX_SAFE_INTEGER;
+  const positions = new Map(
+    instanceIds.flatMap((instanceId) => {
+      const [element] = findJsxElementsByAttribute(page, 'id', idMatcher(instanceId));
+      return element ? [[instanceId, element.getStart()] as const] : [];
+    }),
+  );
 
-  return [...instanceIds].sort((a, b) => position(a) - position(b));
+  return [...positions.keys()].sort((a, b) => positions.get(a)! - positions.get(b)!);
 }
 
 export function removeModuleFromPage(pageSlug: string, instanceId: string, moduleType: string): void {
