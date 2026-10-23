@@ -2,7 +2,7 @@
 
 Changes to the biberblog system (`src/system/` and the system files listed in `manifest.json`). The version is `version` in `src/system/manifest.json`.
 
-<!-- TODO next release (1.6.0?): Claude Code guidance moved to src/system/CLAUDE.md, updated by system:update. The root CLAUDE.md stays project-owned and imports it (@src/system/CLAUDE.md); the 1.6.0 migration adds that import (rename the migration if the version differs). -->
+<!-- TODO next release (1.6.0?): Claude Code guidance moved to src/system/CLAUDE.md, updated by system:update. The root CLAUDE.md stays project-owned and imports it (@src/system/CLAUDE.md); the 1.6.0 migration adds that import (rename the migration if the version differs). Guidance only needed for the CLI and migrations moved into src/system/cli/CLAUDE.md and src/system/migrations/CLAUDE.md, which Claude Code loads only when working there. -->
 
 ## 1.5.0 – 2026-10-16
 

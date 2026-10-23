@@ -7,7 +7,7 @@ Three zones inside `src/`:
 | Zone | Who edits it | Content |
 |---|---|---|
 | `src/project/` | the developer | modules, content JSON, styles, editor UI texts, image sizes |
-| `src/system/` | nobody – identical in every project | editor components, publish/image/auth logic, CLI (`cli/`), API route handlers (`api/`), assets, these docs, `CLAUDE.md` (Claude Code guidance), `LICENSE`, `.env.example` |
+| `src/system/` | nobody – identical in every project | editor components, publish/image/auth logic, CLI (`cli/`), API route handlers (`api/`), assets, these docs, `CLAUDE.md` files (Claude Code guidance: `src/system/CLAUDE.md` plus nested ones in `cli/` and `migrations/`), `LICENSE`, `.env.example` |
 | `src/generated/` | the CLI (`npm run generate`) | registries derived from the module folders and page JSON files |
 
 The system reaches outside `src/system/` only where Next.js or the tooling requires it – each of these is a thin, fixed file or line:

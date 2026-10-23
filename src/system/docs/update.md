@@ -62,6 +62,8 @@ export default function migrate(): void {
 
 The system's guidance for Claude Code lives in `src/system/CLAUDE.md` and is updated like every other system file. The root `CLAUDE.md` belongs to the project: it only imports the system guidance (`@src/system/CLAUDE.md`, next to `@AGENTS.md`) and holds the project's own notes, so updates never touch it. Change the system guidance upstream, not in a project.
 
+Guidance that only matters for part of the system lives in `CLAUDE.md` files next to that code (`src/system/cli/CLAUDE.md`, `src/system/migrations/CLAUDE.md`). Claude Code loads them only when it reads files in that directory, so they don't cost context in every session. Keep `src/system/CLAUDE.md` to what applies everywhere, and don't `@`-import the nested files or the docs – imports are always loaded.
+
 ## Releasing (upstream repository only)
 
 1. Make and test the changes (`src/system/`, the files in the manifest, the manifest's `dependencies`/`devDependencies`/`scripts`). Add a migration if projects need changes outside the system files.
