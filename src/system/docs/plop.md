@@ -130,7 +130,7 @@ One JSON file per page at `src/project/content/<slug>.json`:
 
 `label` is the name of the page in the editor (link dialog), not shown on the website; `page:add` asks for it (default derived from the slug). `seo` is maintained by the customer in the editor's SEO dialog; a new page starts with its label as title and an empty description (see [SEO](./seo.md)).
 
-Module instance ids follow the convention `lowercase(module type) + number`, unique per page (not globally).
+Module instance ids follow the convention `lowercase(module type) + number`, unique per page (not globally). `page:add` with a base page (`basePageSlug`) adds the module types the base page renders – in the order of its page file, not of its JSON; instances left only in the JSON are skipped – via the same code as `page:add-module`, so the new page gets fresh ids and default content.
 
 ## Blueprints (custom fields)
 

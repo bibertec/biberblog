@@ -26,6 +26,7 @@ const BASE_PAGE_IMPORTS = [
 ];
 const pageImports = (source: string) => source.split('\n').filter((line) => line.startsWith('import '));
 const PAGE_FILE = `app/${PAGE}/page.tsx`;
+const COPY = 'plop-test-copy';
 const REGISTRIES = {
   modules: 'src/generated/moduleRegistry.ts',
   pages: 'src/generated/pageRegistry.ts',
@@ -199,6 +200,32 @@ describe('scaffolding CLI', { timeout: 120_000 }, () => {
     expect(page.match(/^import plopTestPageContent /gm)).toHaveLength(1);
   });
 
+  it('page:add with a base page copies its rendered modules in render order, with default content', () => {
+    // The developer reordered the modules in the page file: that order counts, not the JSON order.
+    const [teamLine] = project.read(PAGE_FILE).split('\n').filter((line) => line.includes(`<${TEAM} `));
+    project.write(PAGE_FILE, project.read(PAGE_FILE).replace(`${teamLine}\n`, '').replace('</main>', `${teamLine}\n      </main>`));
+
+    // An instance only left in the JSON (no longer rendered) is not copied.
+    const basePage = project.readJson<PageContent>(PAGE_CONTENT);
+    const stale = { ...basePage, modules: { ...basePage.modules, stale1: { type: SIMPLE, content: {} } } };
+    project.write(PAGE_CONTENT, `${JSON.stringify(stale, null, 2)}\n`);
+
+    project.run('page:add', { pageSlug: COPY, label: 'Plop test copy', basePageSlug: PAGE });
+    project.write(PAGE_CONTENT, `${JSON.stringify(basePage, null, 2)}\n`);
+
+    const copy = project.readJson<PageContent>(`src/project/content/${COPY}.json`);
+    expect(Object.values(copy.modules).map((entry) => entry.type)).toEqual([SIMPLE, SIMPLE, TEAM]);
+    expect(copy.modules[`${TEAM.toLowerCase()}1`].content).toEqual(project.readJson(`${moduleDir(TEAM)}/defaultContent.json`));
+    const renderedTypes = (file: string) => [...project.read(file).matchAll(/<(PlopTest\w+) id=/g)].map((match) => match[1]);
+    expect(renderedTypes(`app/${COPY}/page.tsx`)).toEqual([SIMPLE, SIMPLE, TEAM]);
+    expect(renderedTypes(`app/${COPY}/page.tsx`)).toEqual(renderedTypes(PAGE_FILE));
+    expect(registryHas(REGISTRIES.pages, new RegExp(`['"]/${COPY}['"]\\s*:`))).toBe(true);
+    expectTypeCheckToPass();
+
+    // Later tests remove the modules, which must not be in use on another page.
+    project.run('page:remove', { pageSlug: COPY });
+  });
+
   it('module:add-editable-field adds fields to the module and to every existing instance', () => {
     project.run('module:add-editable-field', {
       moduleName: SIMPLE,
@@ -326,6 +353,8 @@ describe('scaffolding CLI', { timeout: 120_000 }, () => {
     expect(() => project.run('module:remove', { moduleName: TEAM })).toThrow(/still in use/);
     expect(() => project.run('page:remove', { pageSlug: 'home' })).toThrow(/home page cannot be removed/);
     expect(() => project.run('page:add', { pageSlug: PAGE })).toThrow(/already exists/);
+    expect(() => project.run('page:add', { pageSlug: COPY, basePageSlug: 'missing' })).toThrow(/does not exist/);
+    expect(project.exists(`src/project/content/${COPY}.json`)).toBe(false);
     expect(() => project.run('page:remove-module', { pageSlug: PAGE, instanceIdToRemove: 'nope1' })).toThrow(/does not exist/);
   });
 

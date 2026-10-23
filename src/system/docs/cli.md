@@ -49,7 +49,9 @@ Merges a newer biberblog release into the project (3-way merge – local changes
 npm run page:add
 ```
 
-Enter the slug in kebab-case (e.g. `about-us`) and the label of the page (the name in the editor's link dropdown, default derived from the slug, e.g. "About us"). Creates the content file (`src/project/content/<slug>.json`, SEO title = label) and the page file (`app/<slug>/page.tsx`, with the `metadata` export from the page's SEO values), and updates `src/generated/`. To rename the page later, change `label` in its JSON file and run `npm run generate`.
+Enter the slug in kebab-case (e.g. `about-us`) and the label of the page (the name in the editor's link dropdown, default derived from the slug, e.g. "About us"). Creates the content file (`src/project/content/<slug>.json`, SEO title = label) and the page file (`app/<slug>/page.tsx`, with the `metadata` export from the page's SEO values), and updates `src/generated/`.
+
+Optionally pick an existing page whose module layout the new page copies (e.g. a new `terms` page built like `privacy`): the new page gets instances of the modules the existing page renders, in the same order (instances left only in its JSON are skipped), each with the module's default content – the texts of the existing page are not copied. To rename the page later, change `label` in its JSON file and run `npm run generate`.
 
 ### Remove a page (destructive)
 

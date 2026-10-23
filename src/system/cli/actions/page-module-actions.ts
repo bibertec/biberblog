@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import type { NodePlopAPI } from 'plop';
-import { addModuleToPage, removeModuleFromPage } from '../codemods/page.ts';
+import { addModuleToPage, removeModuleFromPage, renderedInOrder } from '../codemods/page.ts';
 import { assertModuleExists, moduleFile, pageContentPath, readJson, updateJson, type PageContent } from '../content.ts';
 
 function assertPageExists(pageSlug: string): void {
@@ -18,26 +18,45 @@ function nextInstanceId(moduleType: string, usedIds: string[]): string {
   return `${prefix}${numbers.length > 0 ? Math.max(...numbers) + 1 : 1}`;
 }
 
+/** Adds instances of the given module types (in this order) with their default content. */
+function addModules(pageSlug: string, modulesToAdd: string[]): string {
+  modulesToAdd.forEach(assertModuleExists);
+
+  const added: { instanceId: string; moduleType: string }[] = [];
+  updateJson<PageContent>(pageContentPath(pageSlug), (page) => {
+    for (const moduleType of modulesToAdd) {
+      const instanceId = nextInstanceId(moduleType, Object.keys(page.modules));
+      page.modules[instanceId] = {
+        type: moduleType,
+        content: readJson<Record<string, unknown>>(moduleFile(moduleType, 'defaultContent.json')),
+      };
+      added.push({ instanceId, moduleType });
+    }
+  });
+  added.forEach(({ instanceId, moduleType }) => addModuleToPage(pageSlug, instanceId, moduleType));
+
+  return `${added.map(({ instanceId }) => instanceId).join(', ')} added to "${pageSlug}"`;
+}
+
 export function registerPageModuleActions(plop: NodePlopAPI) {
   plop.setActionType('addModulesToPage', async (answers) => {
     const { pageSlug, modulesToAdd } = answers as { pageSlug: string; modulesToAdd: string[] };
     assertPageExists(pageSlug);
-    modulesToAdd.forEach(assertModuleExists);
 
-    const added: { instanceId: string; moduleType: string }[] = [];
-    updateJson<PageContent>(pageContentPath(pageSlug), (page) => {
-      for (const moduleType of modulesToAdd) {
-        const instanceId = nextInstanceId(moduleType, Object.keys(page.modules));
-        page.modules[instanceId] = {
-          type: moduleType,
-          content: readJson<Record<string, unknown>>(moduleFile(moduleType, 'defaultContent.json')),
-        };
-        added.push({ instanceId, moduleType });
-      }
-    });
-    added.forEach(({ instanceId, moduleType }) => addModuleToPage(pageSlug, instanceId, moduleType));
+    return addModules(pageSlug, modulesToAdd);
+  });
 
-    return `${added.map(({ instanceId }) => instanceId).join(', ')} added to "${pageSlug}"`;
+  plop.setActionType('copyPageModules', async (answers) => {
+    const { pageSlug, basePageSlug } = answers as { pageSlug: string; basePageSlug: string };
+    assertPageExists(basePageSlug);
+    const { modules } = readJson<PageContent>(pageContentPath(basePageSlug));
+    const rendered = renderedInOrder(basePageSlug, Object.keys(modules));
+    // Instances only left in the JSON would otherwise come back to life on the new page.
+    const skipped = Object.keys(modules).filter((instanceId) => !rendered.includes(instanceId));
+    const note = skipped.length > 0 ? ` (skipped, not rendered on "${basePageSlug}": ${skipped.join(', ')})` : '';
+    if (rendered.length === 0) return `"${basePageSlug}" has no modules to copy${note}`;
+
+    return `${addModules(pageSlug, rendered.map((instanceId) => modules[instanceId].type))}${note}`;
   });
 
   plop.setActionType('removeModuleFromPage', async (answers) => {
