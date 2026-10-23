@@ -7,7 +7,7 @@ Three zones inside `src/`:
 | Zone | Who edits it | Content |
 |---|---|---|
 | `src/project/` | the developer | modules, content JSON, styles, editor UI texts, image sizes |
-| `src/system/` | nobody – identical in every project | editor components, publish/image/auth logic, CLI (`cli/`), API route handlers (`api/`), assets, these docs, `LICENSE`, `.env.example` |
+| `src/system/` | nobody – identical in every project | editor components, publish/image/auth logic, CLI (`cli/`), API route handlers (`api/`), assets, these docs, `CLAUDE.md` (Claude Code guidance), `LICENSE`, `.env.example` |
 | `src/generated/` | the CLI (`npm run generate`) | registries derived from the module folders and page JSON files |
 
 The system reaches outside `src/system/` only where Next.js or the tooling requires it – each of these is a thin, fixed file or line:
@@ -16,6 +16,7 @@ The system reaches outside `src/system/` only where Next.js or the tooling requi
 - `<BiberblogEditor />` in `app/layout.tsx` – the only editor line in the project's layout.
 - `.github/workflows/biberblog.yml` – the CI checks of the system; own workflows go into separate files.
 - `package.json` – the dependencies and the npm scripts of the system (CLI commands, `generate`, `predev`/`prebuild`).
+- `@src/system/CLAUDE.md` in the root `CLAUDE.md` – imports the system's Claude Code guidance; the rest of the root `CLAUDE.md` is for project notes.
 
 Everything else in the repository root belongs to the project. The system only relies on the default `@/*` path alias in `tsconfig.json`.
 

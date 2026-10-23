@@ -2,6 +2,8 @@
 
 Changes to the biberblog system (`src/system/` and the system files listed in `manifest.json`). The version is `version` in `src/system/manifest.json`.
 
+<!-- TODO next release (1.6.0?): Claude Code guidance moved to src/system/CLAUDE.md, updated by system:update. The root CLAUDE.md stays project-owned and imports it (@src/system/CLAUDE.md); the 1.6.0 migration adds that import (rename the migration if the version differs). -->
+
 ## 1.5.0 – 2026-10-16
 
 - Images: an `EditableImage` field can have an optional mobile variant – its own format below Tailwind's `md` breakpoint (768 px) with its own file. In the image dialog, two icon buttons (desktop/smartphone) switch between the variants; by default the mobile image follows the desktop image (the largest centered crop in the mobile format), and the customer can crop it differently or choose another image ("Use desktop image" goes back). On publish, such a field always gets two WEBPs (`<uuid>.webp`, `<uuid>-mobile.webp`), the page renders `<picture>` and phones download only the mobile file. `preload` adds one preload per variant. Opt-in per field: `module:create`/`module:add-editable-field` offer the smartphone variant for top-level image fields; for an existing field, add `mobile: { aspectRatio, maxWidth, maxHeight }` to its entry in `imageFieldRegistry.ts` – module code and content stay unchanged, and until the field is published again, phones get the desktop file in the mobile format. Not yet available for image item fields of collections. Details: `src/system/docs/images.md`, "Mobile variant".

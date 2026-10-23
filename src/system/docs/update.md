@@ -58,6 +58,10 @@ export default function migrate(): void {
 - Only Node built-ins, relative imports with `.ts` extension – the file runs through Node's type stripping, like the other CLI scripts.
 - Idempotent: running it twice, or on a project that already has the change, must do no harm. If it cannot make a change safely (e.g. the project rewrote the affected code), it prints what the developer has to do instead of failing.
 
+## Claude Code guidance
+
+The system's guidance for Claude Code lives in `src/system/CLAUDE.md` and is updated like every other system file. The root `CLAUDE.md` belongs to the project: it only imports the system guidance (`@src/system/CLAUDE.md`, next to `@AGENTS.md`) and holds the project's own notes, so updates never touch it. Change the system guidance upstream, not in a project.
+
 ## Releasing (upstream repository only)
 
 1. Make and test the changes (`src/system/`, the files in the manifest, the manifest's `dependencies`/`devDependencies`/`scripts`). Add a migration if projects need changes outside the system files.
