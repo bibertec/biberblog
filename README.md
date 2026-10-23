@@ -26,7 +26,7 @@ Your customer edits texts and images directly on their live website. You keep a 
 - **It's just Next.js.** Build the site with the App Router as you always do. No CMS schema, no SDK in your components, no content API.
 - **No database, no CMS subscription.** Content lives as JSON in your repository; images end up as optimized WEBP files in `public/`.
 - **Scaffolding included.** Pages, modules and editable fields are generated and kept in sync by CLI commands.
-- **Built for agentic development.** Work by hand, hand the work to an AI agent, or mix both – it's the same workflow. biberblog ships with guidance for [Claude Code](https://claude.com/claude-code), a non-interactive entry to the generators and ready-made skills, e.g. `/module-from-figma`, which turns a Figma frame into a finished module. Agents use the same generators and validation as you, so their changes stay as consistent as your own. And like the editor, all of this is updated with every biberblog release.
+- **Built for agentic development.** Work by hand, hand the work to an AI agent, or mix both – it's the same workflow. biberblog ships with guidance for [Claude Code](https://claude.com/claude-code), a non-interactive entry to the generators and ready-made skills: `/module-from-figma` turns a Figma frame into a finished module, `/change-field` restructures a field – say, a single image into a slider – and carries the existing content along, and `/system-update` brings in a new release, conflicts included. Agents use the same generators and validation as you, so their changes stay as consistent as your own. And like the editor, all of this is updated with every biberblog release.
 - **No black box.** The editor code lives in your repository. Adapt its look and texts per project.
 
 ---

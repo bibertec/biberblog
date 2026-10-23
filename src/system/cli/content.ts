@@ -72,3 +72,10 @@ export function findModuleUsages(moduleName: string): string[] {
       .map(([instanceId]) => `${instanceId} on ${slug}`),
   );
 }
+
+/** Renames `key` in place, keeping the key order; `value` replaces the value if given. */
+export function renameKey(object: Record<string, unknown>, key: string, newKey: string, value: unknown = object[key]): void {
+  const entries = Object.entries(object).map(([name, current]) => (name === key ? [newKey, value] : [name, current]));
+  for (const name of Object.keys(object)) delete object[name];
+  Object.assign(object, Object.fromEntries(entries));
+}

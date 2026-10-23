@@ -7,8 +7,11 @@ import nodePlop from 'node-plop';
  * Code) and by the generator tests.
  */
 
-/** Generators `npm run scaffold` may run. Destructive ones stay interactive. */
-export const SCAFFOLD_GENERATORS = ['page:add', 'page:add-module', 'module:create'];
+/**
+ * Generators `npm run scaffold` may run. Destructive ones stay interactive; `module:change-field`
+ * keeps the content (converted) and reports what a conversion dropped.
+ */
+export const SCAFFOLD_GENERATORS = ['page:add', 'page:add-module', 'module:create', 'module:change-field'];
 
 export class ScaffoldError extends Error {}
 

@@ -416,6 +416,125 @@ describe('scaffolding CLI', { timeout: 120_000 }, () => {
     expectTypeCheckToPass();
   });
 
+  it('module:change-field renames fields and changes their type, converting the content on every page', () => {
+    const schemaPath = `${moduleDir(TEAM)}/schema.ts`;
+    const componentPath = `${moduleDir(TEAM)}/${TEAM}.tsx`;
+    const collectionPath = `${moduleDir(TEAM)}/CollectionFields.client.tsx`;
+    const [[teamId]] = instancesOf(TEAM);
+    const teamContent = () => project.readJson<PageContent>(PAGE_CONTENT).modules[teamId].content;
+    const setTeamContent = (patch: Record<string, unknown>) => {
+      const page = project.readJson<PageContent>(PAGE_CONTENT);
+      page.modules[teamId].content = { ...page.modules[teamId].content, ...patch };
+      project.write(PAGE_CONTENT, `${JSON.stringify(page, null, 2)}\n`);
+    };
+    setTeamContent({ subtitle: 'Line one\nLine two' });
+    // Styling added by the developer stays with the field.
+    project.write(
+      componentPath,
+      project.read(componentPath).replace(/<EditableText fieldId=\{`\$\{id\}\.subtitle`\}/, '<EditableText className="text-lg" fieldId={`${id}.subtitle`}'),
+    );
+
+    // Rename only: code, registry and content keep everything but the name.
+    project.run('module:change-field', { moduleName: TEAM, fieldName: 'subtitle', newFieldName: 'tagline' });
+    expect(project.read(schemaPath)).toMatch(/\btagline\s*:\s*z\.string\(\)/);
+    expect(project.read(schemaPath)).not.toMatch(/\bsubtitle\b/);
+    expect(project.read(componentPath)).toContain('<EditableText className="text-lg" fieldId={`${id}.tagline`} value={content.tagline} />');
+    expect(project.readJson(`${moduleDir(TEAM)}/fieldKinds.json`).tagline).toEqual({ kind: 'editable', type: 'EditableText' });
+    expect(teamContent().tagline).toBe('Line one\nLine two');
+    expect(teamContent()).not.toHaveProperty('subtitle');
+
+    // Text → richtext: same place in the markup, one paragraph per line.
+    project.run('module:change-field', { moduleName: TEAM, fieldName: 'tagline', contentType: 'EditableRichtext' });
+    expect(project.read(componentPath)).toContain('<EditableRichtext className="text-lg" fieldId={`${id}.tagline`} value={content.tagline} />');
+    expect(project.read(componentPath)).not.toMatch(/<EditableText\b/);
+    expect(project.read(schemaPath)).toMatch(/\btagline\s*:\s*richtextDocSchema/);
+    expect(teamContent().tagline).toEqual({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Line one' }] },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Line two' }] },
+      ],
+    });
+
+    // Renaming a collection renames its generated names and the registry keys of its item images.
+    project.run('module:change-field', { moduleName: TEAM, fieldName: 'members', newFieldName: 'people' });
+    const collection = project.read(collectionPath);
+    expect(collection).toContain('peopleItemFields');
+    expect(collection).toContain('export function PeopleField(');
+    expect(collection).toContain(`'${TEAM}.people.portrait'`);
+    expect(collection).not.toMatch(/members|Members/);
+    expect(project.read(componentPath)).toContain('<PeopleField fieldId={`${id}.people`} value={content.people} images={peopleImages} />');
+    expect(project.read(schemaPath)).toMatch(/const peopleItemSchema\b[\s\S]*export type PeopleItem\b[\s\S]*function createPeopleItem\b/);
+    expect(registryHas(REGISTRIES.images, new RegExp(`${TEAM}\\.people\\.portrait['"]\\s*:`))).toBe(true);
+    expect(registryHas(REGISTRIES.images, new RegExp(`${TEAM}\\.members`))).toBe(false);
+    expectTypeCheckToPass();
+
+    // Collection → image: the image of the first item, further items are dropped.
+    const portrait = { src: '/images/team.webp', alt: 'Team' };
+    const [item] = teamContent().people as Record<string, unknown>[];
+    setTeamContent({ people: [{ ...item, portrait }, { ...item, id: 'second' }] });
+    project.run('module:change-field', {
+      moduleName: TEAM,
+      fieldName: 'people',
+      newFieldName: 'photo',
+      contentType: 'EditableImage',
+      imageWidth: 800,
+      imageHeight: 600,
+      itemField: 'portrait',
+    });
+    expect(teamContent().photo).toEqual(portrait);
+    expect(project.exists(collectionPath)).toBe(false);
+    expect(project.read(componentPath)).toContain('loadContentImage(content.photo)');
+    expect(project.read(componentPath)).not.toContain('loadCollectionImages');
+    expect(registryHas(REGISTRIES.images, new RegExp(`${TEAM}\\.photo['"]\\s*:\\s*\\{[^}]*maxWidth:\\s*800`))).toBe(true);
+    expect(registryHas(REGISTRIES.images, new RegExp(`${TEAM}\\.people`))).toBe(false);
+    expect(project.read(schemaPath)).not.toMatch(/people|People/);
+
+    // Image → collection: the image becomes the only item.
+    project.run('module:change-field', {
+      moduleName: TEAM,
+      fieldName: 'photo',
+      newFieldName: 'gallery',
+      contentType: 'EditableCollection',
+      itemFields: [
+        { fieldName: 'caption', contentType: 'EditableText' },
+        { fieldName: 'picture', contentType: 'EditableImage', imageWidth: 300, imageHeight: 200 },
+      ],
+      titleField: 'caption',
+      itemField: 'picture',
+    });
+    expect(teamContent().gallery).toEqual([{ id: expect.stringMatching(UUID), caption: translations.placeholders.text, picture: portrait }]);
+    expect(project.read(collectionPath)).toContain('export function GalleryField(');
+    expect(project.read(componentPath)).toContain('loadCollectionImages(content.gallery, [\'picture\'])');
+    expect(registryHas(REGISTRIES.images, new RegExp(`${TEAM}\\.gallery\\.picture['"]\\s*:`))).toBe(true);
+    expect(registryHas(REGISTRIES.images, new RegExp(`${TEAM}\\.photo`))).toBe(false);
+    expect(Object.keys(project.readJson(`${moduleDir(TEAM)}/fieldKinds.json`))).toEqual(['bio', 'gallery', 'tagline']);
+    expectTypeCheckToPass();
+  });
+
+  it('module:change-field rejects unsupported or incomplete changes before changing anything', () => {
+    const files = [`${moduleDir(TEAM)}/schema.ts`, `${moduleDir(TEAM)}/${TEAM}.tsx`, PAGE_CONTENT, REGISTRIES.images];
+    const before = files.map((file) => project.read(file));
+    const change = (answers: Record<string, unknown>) => () => project.run('module:change-field', { moduleName: TEAM, ...answers });
+
+    expect(change({ fieldName: 'bio', contentType: 'EditableImage', imageWidth: 10, imageHeight: 10 })).toThrow(/Cannot change/);
+    expect(change({ fieldName: 'bio', contentType: 'EditableRichtext' })).toThrow(/Nothing to change/);
+    expect(change({ fieldName: 'bio', newFieldName: 'gallery' })).toThrow(/already exists/);
+    expect(change({ fieldName: 'bio', newFieldName: 'Bio' })).toThrow(/camelCase/);
+    expect(change({ fieldName: 'bio', newFieldName: 'about', imageWidth: 10 })).toThrow(/without a type change/);
+    expect(
+      change({
+        fieldName: 'bio',
+        contentType: 'EditableCollection',
+        itemFields: [{ fieldName: 'label', contentType: 'EditableText' }],
+        titleField: 'label',
+        itemField: 'label',
+      }),
+    ).toThrow(/is EditableText, but the field is EditableRichtext/);
+    expect(change({ fieldName: 'missing', newFieldName: 'other' })).toThrow(/has no editable field/);
+    expect(files.map((file) => project.read(file))).toEqual(before);
+  });
+
   it('module:remove-editable-field removes fields everywhere, including collection and image leftovers', () => {
     project.run('module:remove-editable-field', { moduleName: SIMPLE, fieldName: 'faqs', contentType: 'EditableCollection' });
     project.run('module:remove-editable-field', { moduleName: SIMPLE, fieldName: 'banner', contentType: 'EditableImage' });

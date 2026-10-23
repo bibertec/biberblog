@@ -6,15 +6,31 @@ import {
   addComponentField,
   addCustomSchemaField,
   addSchemaField,
+  readCollectionItemFields,
   removeCollectionFieldWrapper,
   removeComponentField,
   removeSchemaField,
+  renameCollectionFieldWrapper,
+  renameComponentField,
+  renameSchemaField,
+  replaceComponentField,
+  replaceSchemaField,
 } from '../codemods/module.ts';
 import { ensurePlaceholderImage, fieldUsesImages } from '../assets.ts';
-import { removeImageFieldRules, setImageFieldRulesFor } from '../codemods/imageFieldRegistry.ts';
+import { removeImageFieldRules, renameImageFieldRules, setImageFieldRulesFor } from '../codemods/imageFieldRegistry.ts';
 import { imageRegistryKey } from '../codeGen.ts';
 import { BLUEPRINTS_DIR, CAMEL_CASE_PATTERN } from '../constants.ts';
-import { assertModuleExists, moduleFile, readFieldKinds, readJson, updateJson, updateModuleInstances, type FieldKinds } from '../content.ts';
+import {
+  assertModuleExists,
+  moduleFile,
+  readFieldKinds,
+  readJson,
+  renameKey,
+  updateJson,
+  updateModuleInstances,
+  type FieldKinds,
+} from '../content.ts';
+import { assertConvertible, convertFieldValue, type ConversionField } from '../fieldConversion.ts';
 import { defaultValueForContentType, zodExpressionFor } from '../helpers.ts';
 import { assertPattern, assertValidFieldDefinition, type FieldDefinition } from '../validation.ts';
 
@@ -101,6 +117,72 @@ export function registerModuleFieldActions(plop: NodePlopAPI) {
     const pages = deleteFieldData(moduleName, fieldName);
 
     return `Field "${fieldName}" removed from "${moduleName}" and ${pagesNote(pages)}${collectionFileRemoved ? ' (CollectionFields.client.tsx removed)' : ''}`;
+  });
+
+  plop.setActionType('changeEditableField', async (answers) => {
+    const { moduleName, fieldName, newFieldName = fieldName, contentType, itemField, ...typeAnswers } = answers as Partial<FieldDefinition> & {
+      moduleName: string;
+      fieldName: string;
+      newFieldName?: string;
+      itemField?: string;
+    };
+    assertModuleExists(moduleName);
+    const { type: oldType } = getFieldKind(moduleName, fieldName, 'editable');
+    const newType = contentType ?? oldType;
+    if (newFieldName !== fieldName) {
+      assertPattern(newFieldName, CAMEL_CASE_PATTERN, `Field name "${newFieldName}" must be camelCase.`);
+      assertFieldIsNew(moduleName, newFieldName);
+    }
+    const typeChanged = newType !== oldType;
+    if (!typeChanged) {
+      if (newFieldName === fieldName) throw new Error(`Nothing to change: "${fieldName}" already is ${oldType}.`);
+      if (Object.values(typeAnswers).some((value) => value !== undefined) || itemField !== undefined) {
+        throw new Error('Item fields and image sizes cannot be changed without a type change – see src/system/docs/cli.md, "Change a field".');
+      }
+    }
+    const field = { ...typeAnswers, fieldName: newFieldName, contentType: newType };
+    const from: ConversionField = { contentType: oldType, itemField };
+    const to: ConversionField = { contentType: newType, itemFields: field.itemFields, itemField };
+    if (typeChanged) {
+      assertValidFieldDefinition(field);
+      if (oldType === 'EditableCollection') from.itemFields = readCollectionItemFields(moduleName, fieldName);
+      assertConvertible(from, to);
+    }
+
+    if (typeChanged) {
+      replaceComponentField(moduleName, fieldName, field);
+      if (oldType === 'EditableCollection') removeCollectionFieldWrapper(moduleName, fieldName);
+      if (newType === 'EditableCollection') addCollectionFieldWrapper(plop, moduleName, field);
+      replaceSchemaField(plop, moduleName, fieldName, oldType, field);
+      removeImageFieldRules(imageRegistryKey(moduleName, fieldName));
+      setImageFieldRulesFor(moduleName, field);
+      if (fieldUsesImages(field)) ensurePlaceholderImage();
+    } else {
+      renameComponentField(moduleName, fieldName, newFieldName, oldType);
+      if (oldType === 'EditableCollection') renameCollectionFieldWrapper(moduleName, fieldName, newFieldName);
+      renameSchemaField(moduleName, fieldName, newFieldName, oldType);
+      renameImageFieldRules(imageRegistryKey(moduleName, fieldName), imageRegistryKey(moduleName, newFieldName));
+    }
+
+    updateJson<Record<string, unknown>>(moduleFile(moduleName, 'defaultContent.json'), (defaults) => {
+      const value = typeChanged ? defaultValueForContentType(newType, field.itemFields) : defaults[fieldName];
+      renameKey(defaults, fieldName, newFieldName, value);
+    });
+    updateJson<FieldKinds>(moduleFile(moduleName, 'fieldKinds.json'), (kinds) => {
+      renameKey(kinds, fieldName, newFieldName, { kind: 'editable', type: newType });
+    });
+    let lossy = 0;
+    const pages = updateModuleInstances(moduleName, (content) => {
+      if (!(fieldName in content)) return;
+      const converted = convertFieldValue(from, to, content[fieldName]);
+      if (converted.lossy) lossy += 1;
+      renameKey(content, fieldName, newFieldName, converted.value);
+    });
+
+    const changes = [typeChanged && `${oldType} → ${newType}`, newFieldName !== fieldName && `renamed to "${newFieldName}"`].filter(Boolean);
+    const lossyNote = lossy > 0 ? `; content dropped in ${lossy} instance(s) (formatting, further items, other item fields or the mobile image) – check the diff` : '';
+
+    return `Field "${fieldName}" of "${moduleName}" changed (${changes.join(', ')}) on ${pagesNote(pages)}${lossyNote}`;
   });
 
   plop.setActionType('addCustomField', async (answers) => {

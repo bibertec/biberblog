@@ -1,4 +1,4 @@
-import { editSourceFile, getObjectLiteral, propertyNames, removeProperty, setProperty } from '../ast.ts';
+import { editSourceFile, getObjectLiteral, propertyNames, removeProperty, renameProperty, setProperty } from '../ast.ts';
 import { imageRegistryEntry, imageRegistryKey } from '../codeGen.ts';
 import { IMAGE_FIELD_REGISTRY_PATH } from '../constants.ts';
 import type { ModuleFieldAnswer } from '../types.ts';
@@ -69,6 +69,16 @@ export function removeImageFieldRules(prefix: string): void {
     // Looked up again per key: formatting fixes after a removal invalidate earlier nodes.
     for (const key of propertyNames(getObjectLiteral(sourceFile, 'imageFieldRegistry')).filter(matches)) {
       removeProperty(getObjectLiteral(sourceFile, 'imageFieldRegistry'), key);
+    }
+  });
+}
+
+/** Renames the rules of `prefix` and everything below it (same matching as `removeImageFieldRules`). */
+export function renameImageFieldRules(prefix: string, newPrefix: string): void {
+  editSourceFile(IMAGE_FIELD_REGISTRY_PATH, (sourceFile) => {
+    const matches = (key: string) => key === prefix || key.startsWith(`${prefix}.`);
+    for (const key of propertyNames(getObjectLiteral(sourceFile, 'imageFieldRegistry')).filter(matches)) {
+      renameProperty(getObjectLiteral(sourceFile, 'imageFieldRegistry'), key, `${newPrefix}${key.slice(prefix.length)}`);
     }
   });
 }

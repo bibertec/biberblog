@@ -7,7 +7,8 @@
     "app/api/editor/image/upload/route.ts",
     ".github/workflows/biberblog.yml",
     ".claude/skills/module-from-figma/SKILL.md",
-    ".claude/skills/system-update/SKILL.md"
+    ".claude/skills/system-update/SKILL.md",
+    ".claude/skills/change-field/SKILL.md"
   ],
   "dependencies": {
     "@formkit/auto-animate": "^0.10.0",
@@ -69,6 +70,7 @@
     "module:create": "plop --plopfile src/system/cli/plopfile.ts --dest . module:create",
     "module:add-editable-field": "plop --plopfile src/system/cli/plopfile.ts --dest . module:add-editable-field",
     "module:remove-editable-field": "plop --plopfile src/system/cli/plopfile.ts --dest . module:remove-editable-field",
+    "module:change-field": "plop --plopfile src/system/cli/plopfile.ts --dest . module:change-field",
     "module:add-custom-field": "plop --plopfile src/system/cli/plopfile.ts --dest . module:add-custom-field",
     "module:remove-custom-field": "plop --plopfile src/system/cli/plopfile.ts --dest . module:remove-custom-field",
     "module:remove": "plop --plopfile src/system/cli/plopfile.ts --dest . module:remove",

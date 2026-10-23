@@ -137,6 +137,15 @@ export function setProperty(object: ObjectLiteralExpression, name: string, initi
   object.addPropertyAssignment({ name: IDENTIFIER.test(name) ? name : `'${name}'`, initializer });
 }
 
+/** Renames the key of a property in place (keeps its position and initializer). */
+export function renameProperty(object: ObjectLiteralExpression, name: string, newName: string): boolean {
+  const property = findProperty(object, name);
+  if (!property || !Node.isPropertyAssignment(property)) return false;
+  property.getNameNode().replaceWithText(IDENTIFIER.test(newName) ? newName : `'${newName}'`);
+
+  return true;
+}
+
 export function removeProperty(object: ObjectLiteralExpression, name: string): boolean {
   const property = findProperty(object, name);
   if (!property) return false;
@@ -219,6 +228,31 @@ export function removeImportIfUnused(sourceFile: SourceFile, name: string): void
       declaration.remove();
     }
   }
+}
+
+/**
+ * Renames every reference to `name` below `root` – variables, functions, types, JSX tags and imports –
+ * but not property names (`item.name`, `{ name: … }`, JSX attributes) that merely share the text.
+ */
+export function renameIdentifiers(root: Node, name: string, newName: string): void {
+  const references = root.getDescendantsOfKind(SyntaxKind.Identifier).filter((identifier) => {
+    if (identifier.getText() !== name) return false;
+    const parent = identifier.getParent();
+    if (Node.isPropertyAccessExpression(parent) && parent.getNameNode() === identifier) return false;
+    if (Node.isPropertyAssignment(parent) && parent.getNameNode() === identifier) return false;
+    return !Node.isJsxAttribute(parent);
+  });
+  replaceRanges(root.getSourceFile(), references.map((identifier) => [identifier.getStart(), identifier.getEnd(), newName]));
+}
+
+/** Replaces text ranges in one go – nodes of the file must be looked up again afterwards. */
+export function replaceRanges(sourceFile: SourceFile, ranges: [start: number, end: number, text: string][]): void {
+  if (ranges.length === 0) return;
+  let text = sourceFile.getFullText();
+  for (const [start, end, replacement] of [...ranges].sort((a, b) => b[0] - a[0])) {
+    text = `${text.slice(0, start)}${replacement}${text.slice(end)}`;
+  }
+  sourceFile.replaceWithText(text);
 }
 
 // --- Functions & statements -------------------------------------------------------------------

@@ -36,6 +36,7 @@ The codemods do not search for text or anchor comments. They look up the actual 
 - **Formatting doesn't matter.** Line breaks, indentation, quote style, trailing commas or extra code the developer added do not break the generators. Untouched code stays exactly as it is.
 - **Precise.** Only the named property, declaration or JSX element is changed – e.g. removing the field `title` never touches a `title` inside another object.
 - **Loud failures.** If the expected structure is missing (e.g. the schema variable was renamed), the generator stops with a message naming the file and what it could not find, instead of silently doing nothing.
+- **Changing a field in place.** `module:change-field` renames a field by renaming its references (`content.<field>`, `fieldId`, image variables, the generated collection names, registry keys) instead of removing and re-adding it. A type change replaces the field's JSX element at its position (keeping `className`) and reuses the add/remove codemods for everything else; the content is converted by `src/system/cli/fieldConversion.ts`. The item fields of an existing collection are read from its `<field>ItemFields` descriptor.
 - **Clean-up included.** Imports that are no longer used after a removal are removed; a component without image fields is no longer `async`; an emptied `CollectionFields.client.tsx` is deleted. A page imports its content JSON and `resolveModuleContent` only while it renders at least one module – the imports are added with the first module and removed with the last.
 
 ### What the codemods rely on
@@ -155,6 +156,7 @@ Display name = file name without `.json`. New types: add a new file, no code cha
 | `src/system/cli/ast.ts` | small ts-morph toolkit (objects, imports, JSX, formatting) |
 | `src/system/cli/codeGen.ts` | code snippets per field type (single source for templates and codemods) |
 | `src/system/cli/content.ts` | helpers for module/page JSON files |
+| `src/system/cli/fieldConversion.ts` | content conversion between field types (`module:change-field`) |
 | `src/system/cli/validation.ts` | shared input validation |
 | `src/system/cli/prompts.ts` | prompt steps shared by several generators (image size, collection item fields) |
 | `src/system/cli/names.ts` | naming conventions (camelCase, PascalCase, paths) |
@@ -166,6 +168,6 @@ Display name = file name without `.json`. New types: add a new file, no code cha
 
 ## Tests
 
-`src/system/cli/__tests__/scaffolding.test.ts` runs every generator against a temporary copy of the project (`src/system/cli/__tests__/testProject.ts`), exactly like the CLI does – plain Node with native type stripping, only the interactive prompts are replaced by fixed answers. The tests form one scaffolding session: create modules, add a page and module instances, add and remove editable and custom fields, reject invalid input, keep working after the generated code was reformatted by hand, remove everything again, and finally check that all registries are back to their original state. In between, the generated project is type-checked with `tsc`.
+`src/system/cli/__tests__/scaffolding.test.ts` runs every generator against a temporary copy of the project (`src/system/cli/__tests__/testProject.ts`), exactly like the CLI does – plain Node with native type stripping, only the interactive prompts are replaced by fixed answers. The tests form one scaffolding session: create modules, add a page and module instances, add, change and remove editable and custom fields, reject invalid input, keep working after the generated code was reformatted by hand, remove everything again, and finally check that all registries are back to their original state. In between, the generated project is type-checked with `tsc`.
 
 The assertions check behavior (files, content JSON, registry entries, type check) rather than the exact generated text.

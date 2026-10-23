@@ -4,7 +4,7 @@ import type { ItemFieldAnswer } from './types.ts';
 
 /** Interactive prompt steps shared by `module:create` and `module:add-editable-field`. */
 
-type Inquirer = Parameters<Extract<PlopGeneratorConfig['prompts'], (...args: never[]) => unknown>>[0];
+export type Inquirer = Parameters<Extract<PlopGeneratorConfig['prompts'], (...args: never[]) => unknown>>[0];
 
 const positiveInteger = (input: number | undefined) =>
   (typeof input === 'number' && Number.isInteger(input) && input > 0) || 'Please enter a positive integer.';

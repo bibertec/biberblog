@@ -113,6 +113,26 @@ npm run module:remove-editable-field
 
 The field's content is lost on every page that uses the module.
 
+### Change a field
+
+```bash
+npm run module:change-field
+```
+
+Select the module and the editable field, then a new name and/or a new content type. The field keeps its place in the markup (and its `className`), and its content is converted on every page that uses the module:
+
+| From → to | Content |
+|---|---|
+| same type, new name | unchanged; for collections also `<field>ItemFields`, `<Field>Field` etc. and the registry keys of their image item fields are renamed |
+| `EditableText` → `EditableRichtext` | one paragraph per line |
+| `EditableRichtext` → `EditableText` | plain text, blocks joined with a space – **formatting, links and lists are lost** |
+| `EditableText`/`EditableRichtext`/`EditableImage` → `EditableCollection` | the value becomes the only item (in the item field you pick); the other item fields get their default value; an image loses its mobile variant |
+| `EditableCollection` → `EditableText`/`EditableRichtext`/`EditableImage` | the value of the item field you pick, from the first item – **further items and the other item fields are lost** |
+
+For a new type, the generator asks the same questions as `module:add-editable-field` (image sizes, item fields). The module's default content gets the default value of the new type. The output says in how many instances content was dropped – review the diff of the page JSON files before committing. Other changes (e.g. text → image, the item fields of a collection, image sizes) are not supported: change image sizes in `imageFieldRegistry.ts` ([Image](./images.md)); otherwise remove the field and add a new one (its content is lost).
+
+Pull first: the customer's publishes commit content to `main`, and the conversion should run on the latest content.
+
 ### Add a custom (non-editable) field
 
 ```bash
@@ -137,7 +157,7 @@ If the field is still used in the markup, TypeScript reports an error – remove
 npm run scaffold -- <generator> '<answers-json>'
 ```
 
-Runs `page:add`, `page:add-module` or `module:create` without the prompts: the answers are passed as one JSON object and validated by the generator's actions, exactly as if they had been entered interactively. Prints the changed files; on invalid answers it fails with the error message and exit code 1. The destructive generators can only be run interactively.
+Runs `page:add`, `page:add-module`, `module:create` or `module:change-field` without the prompts: the answers are passed as one JSON object and validated by the generator's actions, exactly as if they had been entered interactively. Prints the changed files; on invalid answers it fails with the error message and exit code 1. The destructive generators can only be run interactively.
 
 Put the JSON in single quotes so the shell passes it unchanged. The answers are the same as in the interactive prompts – type: `ModuleFieldAnswer` in `src/system/cli/types.ts`.
 
@@ -184,6 +204,7 @@ npm run scaffold -- page:add '{"pageSlug":"terms","label":"Terms","basePageSlug"
 | `page:add` | `pageSlug` (kebab-case), optional `label`, optional `basePageSlug` |
 | `page:add-module` | `pageSlug`, `modulesToAdd` (module names, added in this order; a name may appear several times) |
 | `module:create` | `moduleName` (PascalCase), `fields` (at least one) |
+| `module:change-field` | `moduleName`, `fieldName`, optional `newFieldName`, optional `contentType`; for a new type the keys of a `fields` entry (below); `itemField` for changes to or from a collection (the item field that takes or gives the value) |
 
 Per entry in `fields`:
 
@@ -195,7 +216,27 @@ Per entry in `fields`:
 
 Field names are camelCase and unique within the module.
 
-Used by the Claude Code skill `/module-from-figma` – see [Claude Code](./claude-code.md).
+Examples for `module:change-field`:
+
+```bash
+# Rename
+npm run scaffold -- module:change-field '{"moduleName":"Hero","fieldName":"headline","newFieldName":"title"}'
+
+# Text → richtext
+npm run scaffold -- module:change-field '{"moduleName":"Hero","fieldName":"intro","contentType":"EditableRichtext"}'
+
+# Image → collection (the image becomes the first item's "picture")
+npm run scaffold -- module:change-field '{
+  "moduleName": "Hero", "fieldName": "image", "newFieldName": "slides", "contentType": "EditableCollection",
+  "itemFields": [
+    { "fieldName": "caption", "contentType": "EditableText" },
+    { "fieldName": "picture", "contentType": "EditableImage", "imageWidth": 1600, "imageHeight": 900 }
+  ],
+  "titleField": "caption", "itemField": "picture"
+}'
+```
+
+Used by the Claude Code skills `/module-from-figma` and `/change-field` – see [Claude Code](./claude-code.md).
 
 ## Images
 

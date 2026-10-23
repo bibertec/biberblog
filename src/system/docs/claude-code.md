@@ -1,10 +1,23 @@
 # Claude Code
 
-biberblog ships what Claude Code needs to work on a project: guidance in `CLAUDE.md` files (`src/system/CLAUDE.md`, imported by the root `CLAUDE.md`, plus path-scoped ones next to the code), a non-interactive entry to the generators, and skills for building modules from designs and for system updates. All of it is part of the system and comes with `npm run system:update`.
+biberblog ships what Claude Code needs to work on a project: guidance in `CLAUDE.md` files (`src/system/CLAUDE.md`, imported by the root `CLAUDE.md`, plus path-scoped ones next to the code), a non-interactive entry to the generators, and skills for building modules from designs, for changing fields with existing content and for system updates. All of it is part of the system and comes with `npm run system:update`.
 
 ## Generators without prompts
 
 Claude Code does not drive the interactive Plop prompts. It runs the same generators with `npm run scaffold -- <generator> '<answers-json>'` (see [CLI commands](./cli.md), "Non-interactive"). The actions validate the answers themselves, so the result is identical to an interactive run.
+
+## Skill `/change-field`
+
+`.claude/skills/change-field/SKILL.md` renames an editable field or changes its type while pages already have content – e.g. a text into a richtext, or a single image into a collection for a slider. It runs `module:change-field` ([CLI commands](./cli.md), "Change a field"), which changes the code and registries and converts the content on every page, and does the rest:
+
+1. checks the starting point (clean working tree, latest content from `main`),
+2. reads the field's code, registry entries and instances,
+3. proposes the answers (name, type, image sizes, item fields) and shows per instance what happens to the content, especially what is lost – and waits for confirmation,
+4. runs `npm run scaffold -- module:change-field …`,
+5. adapts the markup to the new type (wrappers, props, collection item layout) and finds references the generator does not cover,
+6. runs `generate -- --check`, `lint`, `typecheck` and `test`.
+
+Run it with `/change-field` or just ask Claude to rename or restructure a field. One field per run; nothing is committed.
 
 ## Skill `/system-update`
 

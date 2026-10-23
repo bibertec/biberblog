@@ -9,6 +9,7 @@ import { registerPageAddModuleGenerator } from './generators/page-add-module.ts'
 import { registerPageRemoveModuleGenerator } from './generators/page-remove-module.ts';
 import { registerModuleAddEditableFieldGenerator } from './generators/module-add-editable-field.ts';
 import { registerModuleRemoveEditableFieldGenerator } from './generators/module-remove-editable-field.ts';
+import { registerModuleChangeFieldGenerator } from './generators/module-change-field.ts';
 import { registerModuleAddCustomFieldGenerator } from './generators/module-add-custom-field.ts';
 import { registerModuleRemoveCustomFieldGenerator } from './generators/module-remove-custom-field.ts';
 import { registerPageAddGenerator } from './generators/page-add.ts';
@@ -29,6 +30,7 @@ export default function plopfile(plop: NodePlopAPI) {
   registerPageRemoveModuleGenerator(plop);
   registerModuleAddEditableFieldGenerator(plop);
   registerModuleRemoveEditableFieldGenerator(plop);
+  registerModuleChangeFieldGenerator(plop);
   registerModuleAddCustomFieldGenerator(plop);
   registerModuleRemoveCustomFieldGenerator(plop);
   registerPageAddGenerator(plop);
