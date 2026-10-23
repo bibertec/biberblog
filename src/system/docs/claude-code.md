@@ -1,10 +1,23 @@
 # Claude Code
 
-biberblog ships what Claude Code needs to work on a project: guidance in `CLAUDE.md` files (`src/system/CLAUDE.md`, imported by the root `CLAUDE.md`, plus path-scoped ones next to the code), a non-interactive entry to the generators, and a skill for building modules from designs. All of it is part of the system and comes with `npm run system:update`.
+biberblog ships what Claude Code needs to work on a project: guidance in `CLAUDE.md` files (`src/system/CLAUDE.md`, imported by the root `CLAUDE.md`, plus path-scoped ones next to the code), a non-interactive entry to the generators, and skills for building modules from designs and for system updates. All of it is part of the system and comes with `npm run system:update`.
 
 ## Generators without prompts
 
 Claude Code does not drive the interactive Plop prompts. It runs the same generators with `npm run scaffold -- <generator> '<answers-json>'` (see [CLI commands](./cli.md), "Non-interactive"). The actions validate the answers themselves, so the result is identical to an interactive run.
+
+## Skill `/system-update`
+
+`.claude/skills/system-update/SKILL.md` runs `npm run system:update` ([Updates](./update.md)) and does what the command leaves to you:
+
+1. checks the starting point (clean working tree, not the template repository) and suggests a branch,
+2. runs `npm run system:status`, summarizes the release from its CHANGELOG, explains local changes to system files and which of them may conflict – and asks before updating if there are any,
+3. runs the update,
+4. resolves conflicts by comparing what the release and the project changed (`git diff refs/biberblog/v<from> refs/biberblog/v<to>` vs. `… HEAD`) and asks when the intentions contradict,
+5. does the manual steps printed by migrations (e.g. translating new editor texts), explains kept `package.json` values and offers opt-ins from the CHANGELOG,
+6. runs `generate -- --check`, `lint`, `typecheck` and `test` and fixes project code that no longer fits.
+
+Run it with `/system-update` or `/system-update <version>`. Nothing is committed. The skill comes with the system itself, so projects get it with their first update to 1.6.0 – that update is done with `npm run system:update` alone.
 
 ## Skill `/module-from-figma`
 

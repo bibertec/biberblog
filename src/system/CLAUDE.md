@@ -8,7 +8,7 @@ More detailed guidance is in `CLAUDE.md` files next to the code it covers (`src/
 
 biberblog is an on-page content editor layered on a static Next.js (App Router) site. Content lives as JSON in the repo; the customer edits fields directly on the live page, and "Publish" pushes all changes as one commit to `main` on GitHub, which triggers a Vercel deployment. No database, no CMS. Projects are created from the biberblog template repository and receive system updates via `npm run system:update`.
 
-System files may be changed in a project, but they are meant to stay identical to the release: `npm run system:update` 3-way-merges every release into them, and changes to the same lines end up as conflicts. If a project has modified system files (`npm run system:status` lists them), don't run `system:update` without asking.
+System files may be changed in a project, but they are meant to stay identical to the release: `npm run system:update` 3-way-merges every release into them, and changes to the same lines end up as conflicts. If a project has modified system files (`npm run system:status` lists them), don't run `system:update` without asking. For a guided update (conflicts, migration follow-ups, checks): skill `/system-update`.
 
 ## Commands
 

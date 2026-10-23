@@ -30,6 +30,8 @@ Requirements: no uncommitted changes to tracked files, and access to the upstrea
 5. **Migrations** of all versions after the old one up to the new one run in order (see below).
 6. `npm install` (only if dependencies changed) and `npm run generate`.
 
+With Claude Code, the skill `/system-update` runs these steps, resolves conflicts and finishes the migrations' manual steps ([Claude Code](./claude-code.md)).
+
 Nothing is committed – review the result like any other change (`git status`, `git diff --staged`, `src/system/CHANGELOG.md`), run `npm run typecheck && npm run lint && npm run test`, then commit.
 
 ## Conflicts

@@ -6,7 +6,8 @@
     "app/api/editor/deployment/route.ts",
     "app/api/editor/image/upload/route.ts",
     ".github/workflows/biberblog.yml",
-    ".claude/skills/module-from-figma/SKILL.md"
+    ".claude/skills/module-from-figma/SKILL.md",
+    ".claude/skills/system-update/SKILL.md"
   ],
   "dependencies": {
     "@formkit/auto-animate": "^0.10.0",
