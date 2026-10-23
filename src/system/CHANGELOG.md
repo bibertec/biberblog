@@ -2,7 +2,12 @@
 
 Changes to the biberblog system (`src/system/` and the system files listed in `manifest.json`). The version is `version` in `src/system/manifest.json`.
 
-<!-- TODO next release (1.6.0?): Claude Code guidance moved to src/system/CLAUDE.md, updated by system:update. The root CLAUDE.md stays project-owned and imports it (@src/system/CLAUDE.md); the 1.6.0 migration adds that import (rename the migration if the version differs). Guidance only needed for the CLI and migrations moved into src/system/cli/CLAUDE.md and src/system/migrations/CLAUDE.md, which Claude Code loads only when working there. -->
+<!-- TODO next release (1.6.0?): Claude Code guidance moved to src/system/CLAUDE.md, updated by system:update. The root CLAUDE.md stays project-owned and imports it (@src/system/CLAUDE.md); the 1.6.0 migration adds that import (rename the migration if the version differs). Guidance only needed for the CLI and migrations moved into src/system/cli/CLAUDE.md and src/system/migrations/CLAUDE.md, which Claude Code loads only when working there.
+
+TODO next release (1.6.0?), merged since 1.5.0:
+- #10 `npm run page:add` can copy the module layout of an existing page (new prompt "Copy the module layout of an existing page?", answer `basePageSlug`): the new page gets instances of the modules the base page renders, in the order of its page file, each with the module's default content (the base page's texts are not copied). Instances left only in the base page's JSON (no longer rendered) are skipped and listed in the output. An unknown base page fails before any file is created. Details: `src/system/docs/cli.md`, "Add a page".
+- #11 `npm run scaffold -- <generator> '<answers-json>'` runs `page:add`, `page:add-module` and `module:create` without prompts (answers as JSON, validated by the actions; destructive generators stay interactive). The generator tests now run through the same code (`src/system/cli/scaffold.ts`). New system devDependency `node-plop` (was only a transitive dependency of `plop`) – installed by `system:update`. Examples: `src/system/docs/cli.md`, "Non-interactive".
+- #11 Claude Code skill `/module-from-figma` (`.claude/skills/module-from-figma/SKILL.md`, new system file in `manifest.json` – added to existing projects by `system:update`, no migration): builds one module from a Figma frame (Figma MCP) or a screenshot – proposes fields and image sizes for confirmation, maps the design to the tokens in `globals.css` (new tokens only after confirmation), scaffolds via `npm run scaffold`, writes phone-first Tailwind markup. Setup (Figma MCP in the user scope) and limits: new doc `src/system/docs/claude-code.md`. -->
 
 ## 1.5.0 – 2026-10-16
 
