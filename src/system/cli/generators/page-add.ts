@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { NodePlopAPI } from 'plop';
+import type { ActionType, NodePlopAPI } from 'plop';
 import { KEBAB_CASE_PATTERN, CONTENT_DIR, templatePath } from '../constants.ts';
+import { listPageSlugs } from '../content.ts';
 import { defaultPageLabel } from '../names.ts';
 
 export function registerPageAddGenerator(plop: NodePlopAPI) {
@@ -33,22 +34,35 @@ export function registerPageAddGenerator(plop: NodePlopAPI) {
           validate: (input: string) => input.trim() !== '' || 'Please enter a label.',
         },
       ]);
+      const { basePageSlug } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'basePageSlug',
+          message: 'Copy the module layout of an existing page? (modules get their default content)',
+          choices: [{ name: 'No (empty page)', value: '' }, ...listPageSlugs()],
+        },
+      ]);
 
-      return { pageSlug, label: label.trim() };
+      return { pageSlug, label: label.trim(), ...(basePageSlug ? { basePageSlug } : {}) };
     },
-    actions: [
-      { type: 'validateNewPage' },
-      {
-        type: 'add',
-        path: 'src/project/content/{{pageSlug}}.json',
-        templateFile: templatePath('page/content.json.hbs'),
-      },
-      {
-        type: 'add',
-        path: '{{pagePath pageSlug}}',
-        templateFile: templatePath('page/page.tsx.hbs'),
-      },
-      { type: 'registerPage' },
-    ],
+    actions: (answers) => {
+      const actions: ActionType[] = [
+        { type: 'validateNewPage' },
+        {
+          type: 'add',
+          path: 'src/project/content/{{pageSlug}}.json',
+          templateFile: templatePath('page/content.json.hbs'),
+        },
+        {
+          type: 'add',
+          path: '{{pagePath pageSlug}}',
+          templateFile: templatePath('page/page.tsx.hbs'),
+        },
+        { type: 'registerPage' },
+      ];
+      if (answers?.basePageSlug !== undefined) actions.push({ type: 'copyPageModules' });
+
+      return actions;
+    },
   });
 }

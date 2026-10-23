@@ -8,13 +8,17 @@ import { assertPattern } from '../validation.ts';
 
 export function registerPageActions(plop: NodePlopAPI) {
   plop.setActionType('validateNewPage', async (answers) => {
-    const { pageSlug, label } = answers as { pageSlug: string; label?: unknown };
+    const { pageSlug, label, basePageSlug } = answers as { pageSlug: string; label?: unknown; basePageSlug?: unknown };
     assertPattern(pageSlug, KEBAB_CASE_PATTERN, `Slug "${pageSlug}" must be kebab-case.`);
     if (label !== undefined && (typeof label !== 'string' || label.trim() === '')) {
       throw new Error('The page label must not be empty.');
     }
     if (fs.existsSync(pageContentPath(pageSlug))) {
       throw new Error(`A page with slug "${pageSlug}" already exists.`);
+    }
+    // Checked here, before any file is created, although only `copyPageModules` uses it.
+    if (basePageSlug !== undefined && (typeof basePageSlug !== 'string' || !fs.existsSync(pageContentPath(basePageSlug)))) {
+      throw new Error(`Page "${String(basePageSlug)}" to copy the modules from does not exist.`);
     }
 
     return `Page "${pageSlug}" is valid`;

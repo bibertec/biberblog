@@ -30,6 +30,15 @@ function createProject(): Project {
   });
 }
 
+/** Loads a file from disk without writing it back. */
+export function readSourceFile(filePath: string): SourceFile {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`${filePath} does not exist.`);
+  }
+
+  return createProject().addSourceFileAtPath(filePath);
+}
+
 /** Loads a file from disk, applies `edit` and writes it back. */
 export function editSourceFile(filePath: string, edit: (sourceFile: SourceFile) => void): void {
   if (!fs.existsSync(filePath)) {

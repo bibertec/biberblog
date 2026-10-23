@@ -7,6 +7,7 @@ import {
   getDefaultExportFunction,
   getReturnedJsxElement,
   insertJsxChild,
+  readSourceFile,
   removeImportIfUnused,
   removeNodeWithLine,
 } from '../ast.ts';
@@ -35,6 +36,15 @@ export function addModuleToPage(pageSlug: string, instanceId: string, moduleType
       'PLOP_INJECT_MODULE',
     );
   });
+}
+
+/** Sorts instance ids by where the page file renders them (the developer may have reordered them). */
+export function sortByRenderOrder(pageSlug: string, instanceIds: string[]): string[] {
+  const page = getDefaultExportFunction(readSourceFile(pagePathFor(pageSlug)));
+  const position = (instanceId: string) =>
+    findJsxElementsByAttribute(page, 'id', idMatcher(instanceId))[0]?.getStart() ?? Number.MAX_SAFE_INTEGER;
+
+  return [...instanceIds].sort((a, b) => position(a) - position(b));
 }
 
 export function removeModuleFromPage(pageSlug: string, instanceId: string, moduleType: string): void {
