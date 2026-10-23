@@ -24,6 +24,7 @@ npx vitest run src/system/content/seo.test.ts   # single file
 npx vitest run -t "name of test"                # single test by name
 npm run generate               # rewrite src/generated/ registries
 npm run generate -- --check    # CI check that src/generated/ is up to date
+npm run scaffold -- module:create '<json>'   # page:add / page:add-module / module:create without prompts
 npm run setup                  # interactive local setup (.env.local, editor secrets)
 npm run editor:set-password    # set/rotate the editor password hash
 npm run system:status          # system version vs. latest release, locally modified system files
@@ -32,7 +33,7 @@ npm run system:update          # apply system updates from newer releases
 
 CI (`.github/workflows/biberblog.yml`) runs exactly: `generate -- --check`, `lint`, `typecheck`, `test`. Run all four before considering a change done.
 
-Scaffolding (Plop): `module:create`, `module:remove`, `module:add-editable-field`, `module:remove-editable-field`, `module:add-custom-field`, `module:remove-custom-field`, `page:add`, `page:remove`, `page:add-module`, `page:remove-module`. These are interactive; some are destructive without confirmation. Full reference: `src/system/docs/cli.md`.
+Scaffolding (Plop): `module:create`, `module:remove`, `module:add-editable-field`, `module:remove-editable-field`, `module:add-custom-field`, `module:remove-custom-field`, `page:add`, `page:remove`, `page:add-module`, `page:remove-module`. These are interactive; some are destructive without confirmation. To run `page:add`, `page:add-module` or `module:create` yourself, use `npm run scaffold` with the answers as JSON instead of driving the prompts. Full reference: `src/system/docs/cli.md`. Building a module from a Figma frame or screenshot: skill `/module-from-figma` (`src/system/docs/claude-code.md`).
 
 ## Three zones
 
