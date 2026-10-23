@@ -79,7 +79,8 @@ Edit `src/project/components/modules/<Module>/<Module>.tsx` – and, for collect
 - **Phone-first:** base classes for the phone layout, `md:`/`lg:` for larger screens. The mobile image variant switches below `md`.
 - **Semantics:** one `<section>` per module, headings with the right level (`EditableText` renders a `<span>` – wrap it in `<h1>`/`<h2>`), lists as `<ul>`. Only the module that is the page's hero uses `<h1>`, and its image gets `preload` (LCP); other images keep the default lazy loading.
 - **Styling:** Tailwind utilities with the tokens from step 3; reuse helpers from `src/project/styles/css-helpers.ts` (e.g. `containerWrapper`).
-- Server Component – no `'use client'`, no request-time APIs (`cookies()`, `headers()`).
+- **Client boundary:** `<Module>.tsx` stays a Server Component – don't add `'use client'`. `CollectionFields.client.tsx` must keep its `'use client'` directive: it passes functions (`renderItem`, `createItem`) to `EditableCollection`, which only works within a Client Component. Change only the item markup there.
+- No request-time APIs (`cookies()`, `headers()`) – pages are static.
 - Optional: replace the placeholder texts in `defaultContent.json` with the texts from the design (same keys and types; richtext stays Tiptap JSON).
 
 ## 6. Check
