@@ -1,6 +1,6 @@
 {
   "name": "biberblog",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "repository": "https://github.com/bibertec/biberblog",
   "files": [
     "app/api/editor/deployment/route.ts",
